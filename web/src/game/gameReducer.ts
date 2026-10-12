@@ -36,7 +36,10 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
     };
   }
   if (!state || action.payload.gameId !== state.gameId) return state;
-  if (action.payload.version !== state.version + 1) return { ...state, outOfSync: true };
+  // 종료 이벤트는 점수·승자·고양이 전체를 담은 최종 상태라서, 앞 이벤트를 놓쳤어도 적용한다
+  if (action.type !== "ended" && action.payload.version !== state.version + 1) {
+    return { ...state, outOfSync: true };
+  }
 
   switch (action.type) {
     case "revealed": {

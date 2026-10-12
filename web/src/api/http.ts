@@ -8,6 +8,13 @@ export class ApiError extends Error {
   }
 }
 
+let onUnauthorized: () => void = () => {};
+
+/** 401 을 받았을 때 부를 함수. 세션 저장소가 등록한다(순환 import 를 피하려고 주입받는다). */
+export function setUnauthorizedHandler(handler: () => void): void {
+  onUnauthorized = handler;
+}
+
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
@@ -27,6 +34,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
+    if (response.status === 401) onUnauthorized();
     throw new ApiError(data?.code ?? "INTERNAL", data?.message ?? response.statusText, response.status);
   }
   return data as T;

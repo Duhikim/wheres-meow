@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useGameStore } from "./gameStore";
+import type { GameState } from "./types";
 
-/** 진행 중인 대국이 생기면 대국 화면으로 이동한다. 끝난 대국은 무시한다. */
+/** 들어가야 할 대국 ID. 끝났거나 서버와 어긋난 대국으로는 다시 끌고 가지 않는다. */
+export function gameIdToEnter(game: GameState | null): string | null {
+  return game && game.status === "IN_PROGRESS" && !game.outOfSync ? game.gameId : null;
+}
+
+/** 진행 중인 대국이 생기면 대국 화면으로 이동한다. */
 export function useNavigateOnGameStart(): void {
   const navigate = useNavigate();
-  const gameId = useGameStore((s) => (s.game?.status === "IN_PROGRESS" ? s.game.gameId : null));
+  const gameId = useGameStore((s) => gameIdToEnter(s.game));
   useEffect(() => {
     if (gameId) navigate(`/play/${gameId}`);
   }, [gameId, navigate]);

@@ -1,5 +1,6 @@
 import type { Socket } from "socket.io-client";
 import { create } from "zustand";
+import { ROOM_GONE_CODES, useRoomStore, type WaitingRoom } from "../room/roomStore";
 import { gameReducer } from "./gameReducer";
 import type { EndedPayload, GameAction, GameState, RevealedPayload, StartedPayload, TimeoutPayload } from "./types";
 
@@ -19,12 +20,19 @@ export const useGameStore = create<GameStore>((set) => ({
 
 export function bindGameEvents(socket: Socket): void {
   const { dispatch, setError } = useGameStore.getState();
+  const rooms = useRoomStore.getState();
+  socket.on("room:waiting", (payload: WaitingRoom) => rooms.setWaitingRoom(payload));
+  socket.on("room:cancelled", () => rooms.clearWaitingRoom());
   socket.on("game:started", (payload: StartedPayload) => {
     setError(null);
+    rooms.clearWaitingRoom();
     dispatch({ type: "started", payload });
   });
   socket.on("game:revealed", (payload: RevealedPayload) => dispatch({ type: "revealed", payload }));
   socket.on("game:timeout", (payload: TimeoutPayload) => dispatch({ type: "timeout", payload }));
   socket.on("game:ended", (payload: EndedPayload) => dispatch({ type: "ended", payload }));
-  socket.on("error", (payload: { code: string }) => setError(payload.code));
+  socket.on("error", (payload: { code: string }) => {
+    if (ROOM_GONE_CODES.has(payload.code)) rooms.clearWaitingRoom();
+    setError(payload.code);
+  });
 }

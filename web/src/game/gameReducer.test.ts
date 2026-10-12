@@ -91,6 +91,22 @@ describe("gameReducer", () => {
     });
   });
 
+  describe("ended (version 누락 후)", () => {
+    it("[성공] outOfSync 상태여도 종료 이벤트는 최종 상태이므로 적용한다", () => {
+      const outOfSync = { ...start(), outOfSync: true };
+
+      const state = gameReducer(outOfSync, {
+        type: "ended",
+        payload: { gameId: "g1", reason: "ALL_FOUND", winner: 1, scores: [10, 15], cats: [[2, 2]], version: 9 },
+      })!;
+
+      expect(state.status).toBe("FINISHED");
+      expect(state.result).toEqual({ reason: "ALL_FOUND", winner: 1 });
+      expect(state.seats[1].score).toBe(15);
+      expect(state.version).toBe(9);
+    });
+  });
+
   describe("ended", () => {
     it("[성공] 결과를 기록하고 아무도 못 찾은 고양이를 공개한다", () => {
       const afterReveal = gameReducer(start(), {

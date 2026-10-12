@@ -88,7 +88,12 @@ export function PlayPage() {
       />
 
       {lastError && <p className="error">{errorMessage(lastError)}</p>}
-      {game.outOfSync && <p className="error">화면이 서버와 어긋났습니다. 대국이 끝나면 로비로 돌아가 주세요.</p>}
+      {game.outOfSync && game.status === "IN_PROGRESS" && (
+        <p className="error">
+          연결이 끊긴 사이 화면이 서버와 어긋났습니다. 대국이 끝나면 결과가 표시됩니다.{" "}
+          <Link to="/">로비로</Link>
+        </p>
+      )}
 
       <footer className="play-footer">
         <span>

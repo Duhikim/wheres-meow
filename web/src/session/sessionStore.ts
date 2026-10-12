@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { api, ApiError } from "../api/http";
+import { api, ApiError, setUnauthorizedHandler } from "../api/http";
 
 export interface Player {
   id: string;
@@ -28,6 +28,9 @@ export const useSession = create<SessionState>()(
     { name: "wheresmeow-session" },
   ),
 );
+
+// 서버 재시작 등으로 토큰이 무효가 되면 어느 화면에서든 세션을 지워 닉네임 입력으로 돌아간다
+setUnauthorizedHandler(() => useSession.getState().clear());
 
 export async function createGuest(nickname: string): Promise<void> {
   const result = await api<{ token: string; player: Player }>("/api/guests", {
