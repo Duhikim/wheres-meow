@@ -46,7 +46,10 @@ from wheresmeow.matchmaking.application.service.matchmaking_service import Match
 from wheresmeow.rating.adapter.outbound.account.account_player_directory import (
     AccountPlayerDirectory as RatingPlayerDirectory,
 )
+from wheresmeow.practice.adapter.outbound.persistence.sql_single_record_store import SqlSingleRecordStore
+from wheresmeow.practice.application.service.practice_service import PracticeService
 from wheresmeow.rating.adapter.outbound.bot.bot_record_source_adapter import BotRecordSourceAdapter
+from wheresmeow.rating.adapter.outbound.practice.single_record_source_adapter import SingleRecordSourceAdapter
 from wheresmeow.rating.adapter.outbound.persistence.rating_contributor import RatingContributor
 from wheresmeow.rating.adapter.outbound.persistence.sql_rating_reader import SqlRatingReader
 from wheresmeow.rating.application.service.rating_query_service import RatingQueryService
@@ -70,6 +73,7 @@ class Container:
     room_service: RoomService
     bot_service: BotService
     rating_query_service: RatingQueryService
+    practice_service: PracticeService
     matchmaking_service: MatchmakingService
     http_identity: HttpIdentity
     socket_sessions: SocketSessions
@@ -134,8 +138,12 @@ def build_container(
         AccountHumanDirectory(guest_service), BotGameStarterAdapter(game_service), SqlBotRecordReader(database)
     )
 
+    practice_service = PracticeService(SqlSingleRecordStore(database), clock)
     rating_query_service = RatingQueryService(
-        SqlRatingReader(database), RatingPlayerDirectory(guest_service), BotRecordSourceAdapter(bot_service.bot_records)
+        SqlRatingReader(database),
+        RatingPlayerDirectory(guest_service),
+        BotRecordSourceAdapter(bot_service.bot_records),
+        SingleRecordSourceAdapter(practice_service.records),
     )
 
     matchmaking_service = MatchmakingService(
@@ -165,6 +173,7 @@ def build_container(
         room_service=room_service,
         bot_service=bot_service,
         rating_query_service=rating_query_service,
+        practice_service=practice_service,
         matchmaking_service=matchmaking_service,
         http_identity=HttpIdentity(authenticator),
         socket_sessions=SocketSessions(),

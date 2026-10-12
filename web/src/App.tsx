@@ -12,6 +12,8 @@ import { PlayPage } from "./pages/PlayPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RankingPage } from "./pages/RankingPage";
 import { SignupPage } from "./pages/SignupPage";
+import { SinglePlayPage } from "./pages/SinglePlayPage";
+import { SingleSelectPage } from "./pages/SingleSelectPage";
 import { verifySession } from "./session/sessionStore";
 
 export function App() {
@@ -33,6 +35,8 @@ export function App() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/me/nickname" element={<NicknamePage />} />
         <Route path="/ranking" element={<RankingPage />} />
+        <Route path="/single" element={<SingleSelectPage />} />
+        <Route path="/single/:difficulty" element={<SinglePlayPage />} />
         <Route path="/players/:id" element={<ProfilePage />} />
       </Routes>
     </BrowserRouter>

@@ -16,6 +16,7 @@ from wheresmeow.bot.adapter.inbound.web.bot_api import create_bot_blueprint
 from wheresmeow.game.adapter.inbound.socket.game_socket_handlers import register_game_socket_handlers
 from wheresmeow.game.adapter.inbound.web.game_api import create_game_blueprint
 from wheresmeow.matchmaking.adapter.inbound.match_socket_handlers import register_match_socket_handlers
+from wheresmeow.practice.adapter.inbound.web.practice_api import create_practice_blueprint
 from wheresmeow.rating.adapter.inbound.web.rating_api import create_rating_blueprint
 from wheresmeow.room.adapter.inbound.socket.room_socket_handlers import register_room_socket_handlers
 from wheresmeow.room.adapter.inbound.web.room_api import create_room_blueprint
@@ -73,6 +74,9 @@ def create_app(config: AppConfig | None = None, **overrides) -> tuple[Flask, Soc
     app.register_blueprint(create_game_blueprint(container.game_service, identity.current_player_id))
     app.register_blueprint(create_bot_blueprint(container.bot_service, identity.current_player_id))
     app.register_blueprint(create_rating_blueprint(container.rating_query_service, container.rating_query_service))
+    app.register_blueprint(
+        create_practice_blueprint(container.practice_service, container.practice_service, identity.current_player_id)
+    )
 
     sessions = container.socket_sessions
     register_room_socket_handlers(

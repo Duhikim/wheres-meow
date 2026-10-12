@@ -157,3 +157,14 @@ a:not(.btn) { color: var(--grass-dark); font-weight: 700; }
 .rating-change { margin: 0; }
 .rating-change .up { color: var(--grass-dark); font-weight: 700; }
 .rating-change .down { color: var(--danger); font-weight: 700; }
+
+/* ---- 혼자 연습 ---- */
+.level-card { text-decoration: none; color: inherit; }
+.single-bar { display: flex; align-items: center; gap: 12px; }
+.single-time { min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+.single-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+.board .cell .flag { position: absolute; inset: 0; display: grid; place-items: center; line-height: 1; pointer-events: none; }
+.board .cell.closed { position: relative; }
+.board .cell.exploded { background: #f4b6b6; }
+.board .cell.wrong-flag { opacity: .55; }
+.result-time { margin: 0; font-size: 28px; font-weight: 800; color: var(--grass-dark); }

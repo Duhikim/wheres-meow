@@ -81,5 +81,6 @@ describe("LobbyPage", () => {
 
     expect(screen.getByRole("link", { name: /랭킹/ }).getAttribute("href")).toBe("/ranking");
     expect(screen.getByRole("link", { name: /내 전적/ }).getAttribute("href")).toBe("/players/p1");
+    expect(screen.getByRole("link", { name: /혼자 연습/ }).getAttribute("href")).toBe("/single");
   });
 });

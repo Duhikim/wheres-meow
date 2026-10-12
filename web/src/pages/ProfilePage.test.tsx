@@ -33,6 +33,11 @@ const profile = {
     { difficulty: "NORMAL", wins: 0, losses: 0, draws: 0 },
     { difficulty: "HARD", wins: 0, losses: 3, draws: 0 },
   ],
+  singleRecords: [
+    { difficulty: "BEGINNER", bestMs: 41_234, clears: 3 },
+    { difficulty: "INTERMEDIATE", bestMs: null, clears: 0 },
+    { difficulty: "EXPERT", bestMs: null, clears: 0 },
+  ],
 };
 
 afterEach(() => {
@@ -63,6 +68,7 @@ describe("ProfilePage", () => {
     expect(screen.getByText("승")).toBeTruthy();
     expect(screen.getByText("+16")).toBeTruthy();
     expect(screen.getByText("0승 3패 0무")).toBeTruthy();
+    expect(screen.getByText("41.2초")).toBeTruthy();
   });
 
   it("[실패] 없는 플레이어면 안내 문구를 보여 준다", async () => {

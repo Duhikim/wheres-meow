@@ -53,6 +53,7 @@ class Profile:
     ranked: bool  # 랭킹에 나오는 조건(회원, 5판 이상)을 채웠는지
     recent_games: list[RecentGame]
     bot_records: list[dict]
+    single_records: list[dict]
 
 
 class GetRankingsUseCase(Protocol):

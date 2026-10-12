@@ -1,5 +1,10 @@
 from wheresmeow.rating.application.port.inbound import Profile, RankingEntry, RankingPage, RatingSummary
-from wheresmeow.rating.application.port.outbound import BotRecordSource, PlayerDirectory, RatingReader
+from wheresmeow.rating.application.port.outbound import (
+    BotRecordSource,
+    PlayerDirectory,
+    RatingReader,
+    SingleRecordSource,
+)
 from wheresmeow.rating.domain.elo import INITIAL_RATING
 from wheresmeow.shared.errors import InvalidInput
 
@@ -11,10 +16,17 @@ RECENT_GAMES = 20
 class RatingQueryService:
     """GetRankings·GetProfile 유스케이스 구현."""
 
-    def __init__(self, reader: RatingReader, players: PlayerDirectory, bot_records: BotRecordSource) -> None:
+    def __init__(
+        self,
+        reader: RatingReader,
+        players: PlayerDirectory,
+        bot_records: BotRecordSource,
+        single_records: SingleRecordSource,
+    ) -> None:
         self._reader = reader
         self._players = players
         self._bot_records = bot_records
+        self._single_records = single_records
 
     def rankings(self, page: int) -> RankingPage:
         if page < 1:
@@ -47,4 +59,5 @@ class RatingQueryService:
             ranked=card.kind == "MEMBER" and summary.games >= MIN_RANKED_GAMES,
             recent_games=self._reader.recent_games(player_id, RECENT_GAMES),
             bot_records=self._bot_records.bot_records(player_id),
+            single_records=self._single_records.single_records(player_id),
         )

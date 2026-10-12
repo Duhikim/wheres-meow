@@ -4,6 +4,9 @@ import { api, ApiError } from "../api/http";
 import { CatArt } from "../art/Art";
 import { errorMessage } from "../errorMessages";
 import { formatDelta } from "../game/rating";
+import { formatDuration } from "../single/format";
+import { LEVELS } from "../single/engine";
+import type { SingleRecord } from "./SingleSelectPage";
 
 interface RecentGame {
   gameId: string;
@@ -38,6 +41,7 @@ interface Profile {
   ranked: boolean;
   recentGames: RecentGame[];
   botRecords: BotRecord[];
+  singleRecords: SingleRecord[];
 }
 
 const RESULT_TEXT = { WIN: "승", LOSS: "패", DRAW: "무" } as const;
@@ -101,6 +105,16 @@ export function ProfilePage() {
                 {g.ratingBefore !== null && g.ratingAfter !== null && (
                   <span className="recent-delta">{formatDelta(g.ratingAfter - g.ratingBefore)}</span>
                 )}
+              </li>
+            ))}
+          </ul>
+
+          <h3>혼자 연습 최고 기록</h3>
+          <ul className="recent-list">
+            {profile.singleRecords.map((r) => (
+              <li key={r.difficulty} className="recent-row">
+                <span className="recent-name">{LEVELS[r.difficulty].label}</span>
+                <span>{formatDuration(r.bestMs)}</span>
               </li>
             ))}
           </ul>

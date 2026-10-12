@@ -188,6 +188,9 @@ export function LobbyPage() {
       <Link className="btn secondary block" to="/bot">
         🤖 컴퓨터와 대결
       </Link>
+      <Link className="btn secondary block" to="/single">
+        🧩 혼자 연습
+      </Link>
       <Link className="btn secondary block" to="/me/cats">
         🐱 내 고양이
       </Link>

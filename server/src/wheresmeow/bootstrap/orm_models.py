@@ -3,6 +3,7 @@
 from wheresmeow.account.adapter.outbound.persistence import models as account_models  # noqa: F401
 from wheresmeow.bot.adapter.outbound.persistence import models as bot_models  # noqa: F401
 from wheresmeow.game.adapter.outbound.persistence import models as game_models  # noqa: F401
+from wheresmeow.practice.adapter.outbound.persistence import models as practice_models  # noqa: F401
 from wheresmeow.rating.adapter.outbound.persistence import models as rating_models  # noqa: F401
 from wheresmeow.shared.persistence.database import Base
 

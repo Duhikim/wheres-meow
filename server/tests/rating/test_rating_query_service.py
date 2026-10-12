@@ -44,12 +44,17 @@ class FakeBotRecords:
         return [{"difficulty": "EASY", "wins": 1, "losses": 0, "draws": 0}]
 
 
+class FakeSingleRecords:
+    def single_records(self, player_id: str) -> list[dict]:
+        return [{"difficulty": "BEGINNER", "bestMs": 41_000, "clears": 2}]
+
+
 def row(n: int) -> RankedRow:
     return RankedRow(f"p{n}", f"냥{n}", 16, 1500 - n, 5, 3, 2, 0)
 
 
 def service(reader=None, players=None) -> RatingQueryService:
-    return RatingQueryService(reader or FakeRatingReader(), players or FakePlayers(), FakeBotRecords())
+    return RatingQueryService(reader or FakeRatingReader(), players or FakePlayers(), FakeBotRecords(), FakeSingleRecords())
 
 
 class TestRatingQueryService:
@@ -89,6 +94,7 @@ class TestRatingQueryService:
             assert profile.ranked is True
             assert profile.recent_games == [recent]
             assert profile.bot_records[0]["difficulty"] == "EASY"
+            assert profile.single_records[0]["bestMs"] == 41_000
 
         def test_성공_대국이_없으면_초기_레이팅_1000이고_랭킹에_없다(self):
             players = FakePlayers(PlayerCard("g", "손님", "GUEST", 16))

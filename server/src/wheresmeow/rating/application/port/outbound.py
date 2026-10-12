@@ -52,3 +52,9 @@ class PlayerDirectory(Protocol):
 
 class BotRecordSource(Protocol):
     def bot_records(self, player_id: str) -> list[dict]: ...
+
+
+class SingleRecordSource(Protocol):
+    def single_records(self, player_id: str) -> list[dict]:
+        """혼자 연습 난이도별 최고 기록."""
+        ...

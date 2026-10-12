@@ -73,6 +73,7 @@ def create_rating_blueprint(rankings: GetRankingsUseCase, profiles: GetProfileUs
             "ranked": profile.ranked,
             "recentGames": [recent_payload(g) for g in profile.recent_games],
             "botRecords": profile.bot_records,
+            "singleRecords": profile.single_records,
         })
 
     return blueprint
