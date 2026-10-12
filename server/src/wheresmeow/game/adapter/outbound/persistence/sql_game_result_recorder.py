@@ -1,15 +1,27 @@
+from collections.abc import Sequence
+from typing import Protocol
+
+from sqlalchemy.orm import Session
+
 from wheresmeow.game.adapter.outbound.persistence.models import GameRecordRow
 from wheresmeow.game.domain.game import Game
 from wheresmeow.shared.clock import Clock
 from wheresmeow.shared.persistence.database import Database, ms_to_datetime
 
 
+class ResultContributor(Protocol):
+    """대국 기록과 같은 트랜잭션에서 함께 갱신할 것(봇 전적, 레이팅 등). 실패하면 기록 전체가 롤백된다."""
+
+    def contribute(self, session: Session, game: Game) -> None: ...
+
+
 class SqlGameResultRecorder:
     """GameResultRecorder 포트의 DB 구현. 끝난 대국 하나를 game_records 에 한 줄로 남긴다."""
 
-    def __init__(self, database: Database, clock: Clock) -> None:
+    def __init__(self, database: Database, clock: Clock, contributors: Sequence[ResultContributor] = ()) -> None:
         self._database = database
         self._clock = clock
+        self._contributors = list(contributors)
 
     def record(self, game: Game) -> None:
         if game.end_reason is None:
@@ -36,3 +48,5 @@ class SqlGameResultRecorder:
         )
         with self._database.session() as session:
             session.add(row)
+            for contributor in self._contributors:
+                contributor.contribute(session, game)

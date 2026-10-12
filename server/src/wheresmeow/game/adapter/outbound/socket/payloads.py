@@ -27,7 +27,9 @@ def started_payload(game: Game, my_seat: int) -> dict[str, Any]:
         "gameId": game.id,
         "mode": game.mode.value,
         "mySeat": my_seat,
-        "seats": [{"nickname": s.nickname, "skin": s.skin, "score": s.score} for s in game.seats],
+        "seats": [
+            {"nickname": s.nickname, "skin": s.skin, "score": s.score, "isBot": s.is_bot} for s in game.seats
+        ],
         "currentSeat": game.current_seat,
         "turnDeadline": game.turn_deadline_ms,
         "version": game.version,

@@ -21,6 +21,7 @@ class TestPayloads:
             payload = started_payload(make_game(), my_seat=1)
 
             assert payload["mySeat"] == 1
+            assert [seat["isBot"] for seat in payload["seats"]] == [False, False]
             assert "cats" not in payload
             assert "(3, 3)" not in str(payload) and "[3, 3]" not in str(payload)
 

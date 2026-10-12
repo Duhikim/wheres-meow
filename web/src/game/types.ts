@@ -10,6 +10,7 @@ export interface SeatPayload {
   nickname: string;
   skin: number;
   score: number;
+  isBot?: boolean; // 컴퓨터 대전의 봇 좌석
 }
 
 export interface StartedPayload {

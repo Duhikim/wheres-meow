@@ -129,6 +129,9 @@ export function LobbyPage() {
       <button className="btn primary block" type="button" onClick={createRoom}>
         친구와 대결
       </button>
+      <Link className="btn secondary block" to="/bot">
+        🤖 컴퓨터와 대결
+      </Link>
       <Link className="btn secondary block" to="/me/cats">
         🐱 내 고양이
       </Link>

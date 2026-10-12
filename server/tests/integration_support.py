@@ -18,6 +18,20 @@ from persistence_support import migrated_database
 INTEGRATION_CATS = {(x, y) for y in (10, 11) for x in range(12)} | {(11, 9)}
 
 
+class QueueScheduler:
+    """봇의 '생각하는 시간' 대신 작업을 쌓아 두고 run_all() 로 직접 실행한다."""
+
+    def __init__(self) -> None:
+        self.queue = []
+
+    def __call__(self, task) -> None:
+        self.queue.append(task)
+
+    def run_all(self) -> None:
+        while self.queue:
+            self.queue.pop(0)()
+
+
 @dataclass
 class AppEnv:
     app: Flask
@@ -26,6 +40,7 @@ class AppEnv:
     clock: FakeClock
     timer: FakeTurnTimer
     database: Database
+    bot_scheduler: QueueScheduler
 
 
 def build_app_env(database: Database | None = None) -> AppEnv:
@@ -33,6 +48,7 @@ def build_app_env(database: Database | None = None) -> AppEnv:
     database = database or migrated_database()
     clock = FakeClock(now_ms=0)
     timer = FakeTurnTimer()
+    bot_scheduler = QueueScheduler()
     app, socketio = create_app(
         AppConfig(env="test", secret_key="test-secret", database_url="sqlite://"),
         database=database,
@@ -40,8 +56,9 @@ def build_app_env(database: Database | None = None) -> AppEnv:
         turn_timer=timer,
         layout_generator=FixedMineLayoutGenerator(INTEGRATION_CATS),
         first_seat_chooser=lambda: 0,
+        bot_scheduler=bot_scheduler,
     )
-    return AppEnv(app, socketio, app.test_client(), clock, timer, database)
+    return AppEnv(app, socketio, app.test_client(), clock, timer, database, bot_scheduler)
 
 
 def create_guest(env: AppEnv, nickname: str) -> tuple[str, str]:

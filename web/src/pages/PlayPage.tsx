@@ -82,6 +82,7 @@ export function PlayPage() {
   const me = game.mySeat;
   const opponent = (1 - me) as SeatIndex;
   const myTurn = game.status === "IN_PROGRESS" && game.currentSeat === me;
+  const botThinking = game.status === "IN_PROGRESS" && game.seats[game.currentSeat].isBot === true;
   const turnAccent = accentOf(game.seats[game.currentSeat].skin);
   const found = Object.values(game.cells).filter((c) => c.kind === "cat" && c.seat !== null).length;
   const skins: [number, number] = [game.seats[0].skin, game.seats[1].skin];
@@ -109,13 +110,22 @@ export function PlayPage() {
 
       {game.status === "IN_PROGRESS" && (
         <div className="turn" style={{ ["--accent" as string]: turnAccent }}>
-          <div className="turn-row">
-            <span className="turn-label">{myTurn ? "🐾 내 차례" : `${game.seats[opponent].nickname}의 차례`}</span>
-            <span className="turn-seconds">{secondsLeft ?? ""}초</span>
-          </div>
-          <div className="timer-bar">
-            <i style={{ width: `${((secondsLeft ?? 0) / TURN_SECONDS) * 100}%` }} />
-          </div>
+          {botThinking ? (
+            // 봇은 시간 제한이 없으므로 남은 시간 대신 생각하는 중임을 보여 준다
+            <div className="turn-row">
+              <span className="turn-label thinking">🤔 {game.seats[opponent].nickname} 생각하는 중…</span>
+            </div>
+          ) : (
+            <>
+              <div className="turn-row">
+                <span className="turn-label">{myTurn ? "🐾 내 차례" : `${game.seats[opponent].nickname}의 차례`}</span>
+                <span className="turn-seconds">{secondsLeft ?? ""}초</span>
+              </div>
+              <div className="timer-bar">
+                <i style={{ width: `${((secondsLeft ?? 0) / TURN_SECONDS) * 100}%` }} />
+              </div>
+            </>
+          )}
         </div>
       )}
 

@@ -12,10 +12,13 @@ class GamePlayer:
     player_id: str
     nickname: str
     skins: SkinPreference
+    is_bot: bool = False
 
 
 class StartGameUseCase(Protocol):
-    def start_game(self, mode: GameMode, priority: GamePlayer, other: GamePlayer) -> Game:
+    def start_game(
+        self, mode: GameMode, priority: GamePlayer, other: GamePlayer, bot_difficulty: str | None = None
+    ) -> Game:
         """priority 가 스킨 우선권자이며 좌석 0 에 앉는다."""
         ...
 

@@ -41,6 +41,7 @@ class Seat:
     skin: int
     score: int = 0
     consecutive_timeouts: int = 0
+    is_bot: bool = False
 
 
 @dataclass(frozen=True)

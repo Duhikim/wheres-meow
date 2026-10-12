@@ -9,8 +9,15 @@ from wheresmeow.account.adapter.outbound.persistence.sql_player_store import Sql
 from wheresmeow.account.adapter.outbound.token.signed_token_issuer import SignedTokenIssuer
 from wheresmeow.account.application.service.guest_service import GuestService
 from wheresmeow.bootstrap.config import AppConfig
+from wheresmeow.bot.adapter.inbound.game_events.bot_turn_driver import BotTurnDriver, Scheduler, socketio_scheduler
+from wheresmeow.bot.adapter.outbound.account.account_human_directory import AccountHumanDirectory
+from wheresmeow.bot.adapter.outbound.game.bot_game_starter_adapter import BotGameStarterAdapter
+from wheresmeow.bot.adapter.outbound.persistence.bot_record_contributor import BotRecordContributor
+from wheresmeow.bot.adapter.outbound.persistence.sql_bot_record_reader import SqlBotRecordReader
+from wheresmeow.bot.application.service.bot_service import BotService
 from wheresmeow.bootstrap.identity import HttpIdentity, SocketSessions
 from wheresmeow.bootstrap.migrations import run_migrations
+from wheresmeow.game.adapter.outbound.composite_publisher import CompositeGameEventPublisher
 from wheresmeow.game.adapter.outbound.memory.in_memory_game_store import InMemoryGameStore
 from wheresmeow.game.adapter.outbound.persistence.sql_game_result_recorder import SqlGameResultRecorder
 from wheresmeow.game.adapter.outbound.socket.socketio_game_event_publisher import SocketIOGameEventPublisher
@@ -33,6 +40,7 @@ class Container:
     guest_service: GuestService
     game_service: GameService
     room_service: RoomService
+    bot_service: BotService
     http_identity: HttpIdentity
     socket_sessions: SocketSessions
 
@@ -46,6 +54,7 @@ def build_container(
     turn_timer: TurnTimer | None = None,
     layout_generator: MineLayoutGenerator | None = None,
     first_seat_chooser: Callable[[], int] | None = None,
+    bot_scheduler: Scheduler | None = None,
 ) -> Container:
     clock = clock or SystemClock()
     if database is None:
@@ -62,14 +71,20 @@ def build_container(
     guest_service = GuestService(SqlPlayerStore(database, clock), SignedTokenIssuer(config.secret_key))
 
     game_options = {"first_seat_chooser": first_seat_chooser} if first_seat_chooser else {}
+    bot_driver = BotTurnDriver(bot_scheduler or socketio_scheduler(socketio))
     game_service = GameService(
         InMemoryGameStore(),
-        SocketIOGameEventPublisher(socketio),
+        CompositeGameEventPublisher([SocketIOGameEventPublisher(socketio), bot_driver]),
         turn_timer or BackgroundTurnTimer(socketio, clock),
         layout_generator,
         clock,
-        recorder=SqlGameResultRecorder(database, clock),
+        recorder=SqlGameResultRecorder(database, clock, contributors=[BotRecordContributor()]),
         **game_options,
+    )
+
+    bot_driver.attach(get_game=game_service, reveal=game_service)
+    bot_service = BotService(
+        AccountHumanDirectory(guest_service), BotGameStarterAdapter(game_service), SqlBotRecordReader(database)
     )
 
     room_service = RoomService(
@@ -85,6 +100,7 @@ def build_container(
         guest_service=guest_service,
         game_service=game_service,
         room_service=room_service,
+        bot_service=bot_service,
         http_identity=HttpIdentity(guest_service),
         socket_sessions=SocketSessions(),
     )

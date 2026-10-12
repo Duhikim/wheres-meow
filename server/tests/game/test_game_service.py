@@ -211,3 +211,38 @@ class TestGameServiceCurrentGame:
             service.forfeit("g1", "host")
 
             assert service.find_current_game("host") is None
+
+
+BOT = GamePlayer("bot:HARD", "컴퓨터(어려움)", SkinPreference(17, 16), is_bot=True)
+
+
+class TestGameServiceBot:
+    class TestStartBotGame:
+        def test_성공_봇_좌석과_난이도를_기록한다(self, env):
+            service, *_ = env
+
+            game = service.start_game(GameMode.BOT, HOST, BOT, bot_difficulty="HARD")
+
+            assert (game.mode, game.bot_difficulty) == (GameMode.BOT, "HARD")
+            assert (game.seats[0].is_bot, game.seats[1].is_bot) == (False, True)
+
+        def test_성공_봇_차례에는_턴_타이머를_걸지_않는다(self, env):
+            service, _, _, timer, _ = env
+            game = service.start_game(GameMode.BOT, HOST, BOT, bot_difficulty="HARD")  # 선공 = 사람(좌석 0)
+            scheduled = len(timer.scheduled)
+
+            service.reveal(game.id, "host", 5, 9)  # 숫자 칸 → 봇 차례
+
+            assert game.current_seat == 1
+            assert len(timer.scheduled) == scheduled
+
+        def test_성공_사람_차례가_되면_다시_타이머를_건다(self, env):
+            service, _, _, timer, _ = env
+            game = service.start_game(GameMode.BOT, HOST, BOT, bot_difficulty="HARD")
+            service.reveal(game.id, "host", 5, 9)
+            scheduled = len(timer.scheduled)
+
+            service.reveal(game.id, "bot:HARD", 0, 9)  # 봇이 숫자 칸 → 사람 차례
+
+            assert game.current_seat == 0
+            assert len(timer.scheduled) == scheduled + 1

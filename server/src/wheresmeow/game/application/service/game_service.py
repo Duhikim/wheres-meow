@@ -46,17 +46,24 @@ class GameService:
         self._locks: dict[str, threading.Lock] = {}
         self._locks_guard = threading.Lock()
 
-    def start_game(self, mode: GameMode, priority: GamePlayer, other: GamePlayer) -> Game:
+    def start_game(
+        self, mode: GameMode, priority: GamePlayer, other: GamePlayer, bot_difficulty: str | None = None
+    ) -> Game:
         for player in (priority, other):
             if self._store.find_active_by_player(player.player_id) is not None:
                 raise AlreadyInGame(f"이미 진행 중인 대국이 있습니다: {player.player_id}")
         skin_0, skin_1 = assign_skins(priority.skins, other.skins)
         board = Board(BOARD_SIZE, self._layout_generator.generate(BOARD_SIZE, CAT_COUNT))
+        if (mode is GameMode.BOT) != (bot_difficulty is not None):
+            raise ValueError("컴퓨터 대전에만 난이도를 지정합니다")
         seats = (
-            Seat(priority.player_id, priority.nickname, skin_0),
-            Seat(other.player_id, other.nickname, skin_1),
+            Seat(priority.player_id, priority.nickname, skin_0, is_bot=priority.is_bot),
+            Seat(other.player_id, other.nickname, skin_1, is_bot=other.is_bot),
         )
-        game = Game(self._id_factory(), mode, board, seats, self._first_seat_chooser(), self._clock.now_ms())
+        game = Game(
+            self._id_factory(), mode, board, seats, self._first_seat_chooser(), self._clock.now_ms(),
+            bot_difficulty=bot_difficulty,
+        )
         with self._lock_for(game.id):
             self._store.save(game)
             self._publisher.game_started(game)
@@ -113,6 +120,8 @@ class GameService:
 
     def _schedule_turn(self, game: Game) -> None:
         assert game.turn_deadline_ms is not None
+        if game.seats[game.current_seat].is_bot:
+            return  # 봇은 시간 초과를 하지 않는다(스펙 4.6)
         self._timer.schedule(game.id, game.turn_seq, game.turn_deadline_ms, self.handle_timeout)
 
     def _require(self, game_id: str) -> Game:
