@@ -36,8 +36,9 @@ class Env:
         self.timer = FakeTurnTimer()
         self.publisher = FakeGameEventPublisher()
         ids = iter(f"g{n}" for n in range(1, 100))
+        self.store = InMemoryGameStore(self.clock)
         self.games = GameService(
-            InMemoryGameStore(), self.publisher, self.timer, FixedMineLayoutGenerator(CATS), self.clock,
+            self.store, self.publisher, self.timer, FixedMineLayoutGenerator(CATS), self.clock,
             recorder=FakeGameResultRecorder(), first_seat_chooser=lambda: 0, id_factory=lambda: next(ids),
         )
         self.notifier = FakeRematchNotifier()
@@ -162,3 +163,14 @@ class TestRematchService:
             env.timer.fire_latest()
 
             assert sorted(env.notifier.cancelled) == [(game_id, "guest", "EXPIRED"), (game_id, "host", "EXPIRED")]
+
+    class TestCleanup:
+        def test_성공_대국이_저장소에서_지워지면_재대결_상태도_지운다(self):
+            env = Env()
+            game_id = env.finished_game()
+            env.rematches.leave_result(game_id, "guest")
+            env.store.forget(game_id)  # 보관 시간이 지나 정리되었다
+
+            env.rematches.prune()
+
+            assert env.rematches.tracked_game_ids() == []

@@ -34,9 +34,16 @@ class SocketSessions:
             self._players[sid] = player_id
 
     def unbind(self, sid: str) -> str | None:
-        """이 연결에 묶여 있던 플레이어 ID 를 돌려준다(인증 전에 끊겼으면 None)."""
+        """이 연결이 그 플레이어의 마지막 연결이었으면 플레이어 ID 를 돌려준다.
+
+        다른 탭이나 먼저 붙은 새 연결이 남아 있으면(망 전환 시 옛 연결이 늦게 정리되는 경우) None 이다.
+        인증 전에 끊긴 연결도 None 이다.
+        """
         with self._guard:
-            return self._players.pop(sid, None)
+            player_id = self._players.pop(sid, None)
+            if player_id is None or player_id in self._players.values():
+                return None
+            return player_id
 
     def current_player_id(self) -> str:
         with self._guard:

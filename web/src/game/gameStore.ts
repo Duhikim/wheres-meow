@@ -23,6 +23,7 @@ interface GameStore {
   dispatch: (action: GameAction) => void;
   setError: (code: string | null) => void;
   markRematchRequested: (gameId: string) => void;
+  markRematchDeclined: (gameId: string) => void;
 }
 
 function rematchOf(current: RematchState | null, gameId: string): RematchState {
@@ -37,6 +38,8 @@ export const useGameStore = create<GameStore>((set) => ({
   dispatch: (action) => set((state) => ({ game: gameReducer(state.game, action) })),
   setError: (code) => set({ lastError: code }),
   markRematchRequested: (gameId) => set((state) => ({ rematch: { ...rematchOf(state.rematch, gameId), mine: true } })),
+  markRematchDeclined: (gameId) =>
+    set((state) => ({ rematch: { ...rematchOf(state.rematch, gameId), cancelled: "I_DECLINED" } })),
 }));
 
 export function bindGameEvents(socket: Socket): void {
@@ -78,6 +81,13 @@ export function bindGameEvents(socket: Socket): void {
   socket.on("error", (payload: { code: string }) => {
     if (ROOM_GONE_CODES.has(payload.code)) rooms.clearWaitingRoom();
     if (payload.code === "ALREADY_IN_GAME") match.clearWaiting();
+    // 재연결 뒤 다시 줄을 섰는데 옛 연결의 대기가 아직 남아 있다. 그대로 기다리면 되므로 오류로 보이지 않는다.
+    if (payload.code === "ALREADY_QUEUED" && useMatchStore.getState().waiting) return;
+    // 내 재대결 신청을 서버가 거부했다(마감 직후, 상대가 막 떠남). 기다림 표시를 멈춘다.
+    const rematch = useGameStore.getState().rematch;
+    if (payload.code === "REMATCH_EXPIRED" && rematch && !rematch.cancelled) {
+      useGameStore.setState({ rematch: { ...rematch, cancelled: "EXPIRED" } });
+    }
     setError(payload.code);
   });
 }

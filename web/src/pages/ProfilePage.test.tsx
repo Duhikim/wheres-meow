@@ -83,5 +83,6 @@ describe("ProfilePage", () => {
     renderAt("/players/p1");
 
     await waitFor(() => expect(screen.getByText(/게스트는 랭킹에 오르지 않습니다/)).toBeTruthy());
+    expect(screen.getByText(/가입해도 게스트 기록은 옮겨지지 않습니다/)).toBeTruthy();
   });
 });

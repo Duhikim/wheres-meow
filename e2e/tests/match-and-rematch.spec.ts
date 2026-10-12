@@ -39,6 +39,8 @@ test("빠른 대전으로 만나 레이팅이 반영되고, 재대결은 선공�
   await b.getByRole("button", { name: "재대결 신청" }).click();
   await a.getByRole("button", { name: "거절" }).click();
   await expect(b.getByText("상대가 재대결을 거절했습니다.")).toBeVisible();
+  await expect(a.getByText("재대결을 거절했습니다.", { exact: true })).toBeVisible();
+  await expect(a.getByRole("button", { name: "수락" })).toHaveCount(0);
 
   // 내 전적: 매칭 2판이 최근 대국에 있다
   await a.getByRole("link", { name: "로비로" }).click();

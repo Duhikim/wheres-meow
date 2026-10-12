@@ -84,3 +84,18 @@ class TestMatchFlow:
             a.emit("match:join")
 
             assert [e["code"] for e in received(a, "error")] == ["ALREADY_IN_GAME"]
+
+        def test_성공_같은_플레이어의_다른_연결이_남아_있으면_대기열에서_빼지_않는다(self, app_env):
+            token_a, _ = create_guest(app_env, "에이냥")
+            old = connect(app_env, token_a)
+            old.emit("match:join")
+            new = connect(app_env, token_a)  # 망 전환 등으로 새 연결이 먼저 붙었다
+            new.emit("match:join")
+            assert [e["code"] for e in received(new, "error")] == ["ALREADY_QUEUED"]
+
+            old.disconnect()  # 옛 연결은 뒤늦게 정리된다
+            b, _ = queued_guest(app_env, "비냥")
+            app_env.match_repeater.tick()
+
+            assert len(received(new, "game:started")) == 1
+            assert len(received(b, "game:started")) == 1

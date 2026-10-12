@@ -51,4 +51,24 @@ describe("재대결 이벤트", () => {
 
     expect(useGameStore.getState().rematch).toBeNull();
   });
+
+  it("[성공] 내가 거절하면 수락·거절 대신 거절했다는 상태가 된다", () => {
+    const { socket, trigger } = fakeSocket();
+    bindGameEvents(socket);
+    trigger("game:rematch-requested", { gameId: "g1" });
+
+    useGameStore.getState().markRematchDeclined("g1");
+
+    expect(useGameStore.getState().rematch?.cancelled).toBe("I_DECLINED");
+  });
+
+  it("[실패] 내 신청을 서버가 만료로 거부하면 기다림을 멈추고 만료 상태가 된다", () => {
+    const { socket, trigger } = fakeSocket();
+    bindGameEvents(socket);
+    useGameStore.getState().markRematchRequested("g1");
+
+    trigger("error", { code: "REMATCH_EXPIRED" });
+
+    expect(useGameStore.getState().rematch?.cancelled).toBe("EXPIRED");
+  });
 });

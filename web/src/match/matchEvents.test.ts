@@ -62,4 +62,15 @@ describe("매칭 대기 이벤트", () => {
 
     expect(emit).toHaveBeenCalledWith("match:join");
   });
+
+  it("[성공] 다시 줄을 섰는데 이미 대기 중이라는 응답이면 오류로 보지 않고 계속 기다린다", () => {
+    const { socket, trigger } = fakeSocket();
+    bindGameEvents(socket);
+    trigger("match:waiting", { since: 1000, range: 100 });
+
+    trigger("error", { code: "ALREADY_QUEUED" });
+
+    expect(useGameStore.getState().lastError).toBeNull();
+    expect(useMatchStore.getState().waiting).not.toBeNull();
+  });
 });

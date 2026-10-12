@@ -150,7 +150,10 @@ export function PlayPage() {
         game={game}
         rematch={rematch}
         onRequestRematch={requestRematch}
-        onDeclineRematch={() => socket.emit("game:rematch-decline", { gameId: game.gameId })}
+        onDeclineRematch={() => {
+          useGameStore.getState().markRematchDeclined(game.gameId);
+          socket.emit("game:rematch-decline", { gameId: game.gameId });
+        }}
         onLeave={() => socket.emit("game:leave-result", { gameId: game.gameId })}
       />
 

@@ -49,7 +49,7 @@ function record(r: { wins: number; losses: number; draws: number }): string {
 }
 
 function rankNote(profile: Profile): string {
-  if (profile.kind === "GUEST") return "게스트는 랭킹에 오르지 않습니다. 회원으로 가입하면 이어서 기록됩니다.";
+  if (profile.kind === "GUEST") return "게스트는 랭킹에 오르지 않습니다. 회원으로 가입해도 게스트 기록은 옮겨지지 않습니다.";
   if (!profile.ranked) return `랭킹에 오르려면 ${5 - profile.games}판 더 두어야 합니다.`;
   return "랭킹에 올라 있습니다.";
 }

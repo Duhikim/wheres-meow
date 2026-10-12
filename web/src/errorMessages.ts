@@ -15,6 +15,7 @@ const MESSAGES: Record<string, string> = {
   PROVIDER_DISABLED: "지금은 쓸 수 없는 로그인 방법입니다.",
   ALREADY_QUEUED: "이미 상대를 찾는 중입니다.",
   PLAYER_NOT_FOUND: "플레이어를 찾을 수 없습니다.",
+  REMATCH_EXPIRED: "재대결 신청 시간이 지났거나 상대가 떠났습니다.",
 };
 
 export function errorMessage(code: string): string {

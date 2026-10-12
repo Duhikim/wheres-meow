@@ -15,6 +15,7 @@ const CANCEL_TEXT: Record<RematchCancelReason, string> = {
   EXPIRED: "30초가 지나 재대결 신청이 취소되었습니다.",
   LEFT: "상대가 결과 화면을 떠났습니다.",
   UNAVAILABLE: "지금은 재대결을 시작할 수 없습니다.",
+  I_DECLINED: "재대결을 거절했습니다.",
 };
 
 const accentOf = (skin: number) => SKIN_ACCENT[skinConfig(skin).coat];

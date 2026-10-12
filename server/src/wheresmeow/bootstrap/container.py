@@ -117,7 +117,7 @@ def build_container(
     game_options = {"first_seat_chooser": first_seat_chooser} if first_seat_chooser else {}
     bot_driver = BotTurnDriver(bot_scheduler or socketio_scheduler(socketio))
     game_service = GameService(
-        InMemoryGameStore(),
+        InMemoryGameStore(clock),
         CompositeGameEventPublisher([SocketIOGameEventPublisher(socketio), bot_driver]),
         timer,
         layout_generator,

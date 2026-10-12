@@ -26,7 +26,18 @@ class RematchService:
         self._rematches: dict[str, Rematch] = {}
         self._lock = threading.Lock()
 
+    def prune(self) -> None:
+        """저장소에서 지워진 대국의 협상 상태를 버린다. 그 대국으로는 어차피 GAME_NOT_FOUND 가 난다."""
+        with self._lock:
+            for game_id in [g for g in self._rematches if not self._games.is_known(g)]:
+                del self._rematches[game_id]
+
+    def tracked_game_ids(self) -> list[str]:
+        with self._lock:
+            return list(self._rematches)
+
     def request_rematch(self, game_id: str, player_id: str) -> None:
+        self.prune()
         game = self._finished_game(game_id, player_id)
         with self._lock:
             rematch = self._rematch_for(game)
@@ -41,6 +52,7 @@ class RematchService:
                 self._timer.schedule(game_id, 0, rematch.deadline_ms, self.handle_expiry)
 
     def decline_rematch(self, game_id: str, player_id: str) -> None:
+        self.prune()
         game = self._finished_game(game_id, player_id)
         with self._lock:
             notify = self._rematch_for(game).decline(player_id)
@@ -48,6 +60,7 @@ class RematchService:
             self._notifier.rematch_cancelled(game_id, notify, "DECLINED")
 
     def leave_result(self, game_id: str, player_id: str) -> None:
+        self.prune()
         game = self._finished_game(game_id, player_id)
         with self._lock:
             notify = self._rematch_for(game).leave(player_id)

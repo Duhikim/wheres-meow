@@ -95,6 +95,10 @@ class GameService:
             return
         self._act(game_id, lambda game: game.timeout(turn_seq, self._clock.now_ms()))
 
+    def is_known(self, game_id: str) -> bool:
+        """저장소에 아직 남아 있는 대국인지(끝난 대국은 보관 시간이 지나면 사라진다)."""
+        return self._store.get(game_id) is not None
+
     def find_current_game(self, player_id: str) -> Game | None:
         """재접속용. 이 플레이어의 진행 중인 대국(없으면 None)."""
         return self._store.find_active_by_player(player_id)

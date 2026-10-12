@@ -113,6 +113,7 @@ def _register_connection_handlers(socketio: SocketIO, container: Container) -> N
 
     @socketio.on("disconnect")
     def on_disconnect(*_args):
-        player_id = container.socket_sessions.unbind(request.sid)
-        if player_id is not None:
-            container.matchmaking_service.leave_match(player_id)  # 연결이 끊기면 대기열에서 뺀다(스펙 4.3)
+        last_player_id = container.socket_sessions.unbind(request.sid)
+        if last_player_id is not None:
+            # 그 플레이어의 연결이 모두 끊기면 대기열에서 뺀다(스펙 4.3). 다른 연결이 남아 있으면 그대로 둔다.
+            container.matchmaking_service.leave_match(last_player_id)

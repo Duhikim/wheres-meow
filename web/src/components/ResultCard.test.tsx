@@ -87,4 +87,11 @@ describe("ResultCard", () => {
     expect(screen.queryByRole("button", { name: "수락" })).toBeNull();
     expect(screen.getByRole("button", { name: "재대결 신청" })).toBeTruthy();
   });
+
+  it("[성공] 내가 거절했으면 거절했다는 문구만 보여 준다", () => {
+    renderCard({ gameId: "g1", mine: false, theirs: true, cancelled: "I_DECLINED" });
+
+    expect(screen.getByText("재대결을 거절했습니다.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "수락" })).toBeNull();
+  });
 });

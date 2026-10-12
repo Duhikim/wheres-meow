@@ -77,7 +77,8 @@ export interface StatePayload extends StartedPayload {
   cats?: [number, number][];
 }
 
-export type RematchCancelReason = "DECLINED" | "EXPIRED" | "LEFT" | "UNAVAILABLE";
+/** 서버가 보내는 취소 사유 네 가지와, 내가 거절했음을 나타내는 화면 전용 I_DECLINED. */
+export type RematchCancelReason = "DECLINED" | "EXPIRED" | "LEFT" | "UNAVAILABLE" | "I_DECLINED";
 
 /** 끝난 대국 하나의 재대결 협상 상태. */
 export interface RematchState {
