@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
+import { CatArt } from "../art/Art";
+import { SKIN_ACCENT, skinConfig } from "../art/skins";
 import { Board } from "../components/Board";
 import { errorMessage } from "../errorMessages";
 import { computeCellSize } from "../game/cellSize";
 import { useGameStore } from "../game/gameStore";
 import { useSecondsLeft, useViewportWidth } from "../game/hooks";
-import { cellKey, type GameState } from "../game/types";
+import { cellKey, type GameState, type SeatIndex } from "../game/types";
 import { useSession } from "../session/sessionStore";
 import { getSocket } from "../socket/socket";
+
+const TURN_SECONDS = 20;
+const TOTAL_CATS = 25;
 
 const REASON_TEXT: Record<NonNullable<GameState["result"]>["reason"], string> = {
   ALL_FOUND: "고양이 25마리를 모두 찾았습니다",
@@ -15,11 +20,29 @@ const REASON_TEXT: Record<NonNullable<GameState["result"]>["reason"], string> = 
   AUTO_FORFEIT: "시간 초과 3회 연속으로 자동 기권되었습니다",
 };
 
+const accentOf = (skin: number) => SKIN_ACCENT[skinConfig(skin).coat];
+
+function SeatCard({ game, seat, mine }: { game: GameState; seat: SeatIndex; mine: boolean }) {
+  const { nickname, skin, score } = game.seats[seat];
+  const active = game.status === "IN_PROGRESS" && game.currentSeat === seat;
+  return (
+    <div className={`seat-card${active ? " active" : ""}${mine ? "" : " right"}`} style={{ ["--accent" as string]: accentOf(skin) }}>
+      <CatArt skin={skin} pose="face" size={36} />
+      <div className="seat-name">
+        <b>{nickname}</b>
+        <small>{mine ? "나" : "상대"}</small>
+      </div>
+      <span className="score">{score}</span>
+    </div>
+  );
+}
+
 export function PlayPage() {
   const { gameId } = useParams();
   const token = useSession((s) => s.token);
   const game = useGameStore((s) => s.game);
   const lastError = useGameStore((s) => s.lastError);
+  const connection = useGameStore((s) => s.connection);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [confirmForfeit, setConfirmForfeit] = useState(false);
   const secondsLeft = useSecondsLeft(game?.turnDeadline ?? null);
@@ -31,16 +54,22 @@ export function PlayPage() {
   if (!token || !game || game.gameId !== gameId) {
     return (
       <main className="page center">
+        <CatArt skin={19} size={96} />
         <p>대국 정보를 불러올 수 없습니다.</p>
-        <Link to="/">로비로</Link>
+        <Link className="btn primary" to="/">
+          로비로
+        </Link>
       </main>
     );
   }
 
   const socket = getSocket(token);
   const me = game.mySeat;
-  const opponent = (1 - me) as 0 | 1;
+  const opponent = (1 - me) as SeatIndex;
   const myTurn = game.status === "IN_PROGRESS" && game.currentSeat === me;
+  const turnAccent = accentOf(game.seats[game.currentSeat].skin);
+  const found = Object.values(game.cells).filter((c) => c.kind === "cat" && c.seat !== null).length;
+  const skins: [number, number] = [game.seats[0].skin, game.seats[1].skin];
 
   function reveal(x: number, y: number) {
     useGameStore.getState().setError(null);
@@ -55,37 +84,47 @@ export function PlayPage() {
 
   return (
     <main className="play">
+      {connection === "reconnecting" && <div className="banner">연결이 끊겼습니다. 다시 연결하는 중…</div>}
+
       <header className="scoreboard">
-        <div className="seat seat-0-text">
-          <b>{game.seats[me].nickname}</b>
-          <small>나</small>
-          <span className="score">{game.seats[me].score}</span>
-        </div>
+        <SeatCard game={game} seat={me} mine />
         <span className="vs">VS</span>
-        <div className="seat seat-1-text right">
-          <span className="score">{game.seats[opponent].score}</span>
-          <b>{game.seats[opponent].nickname}</b>
-          <small>상대</small>
-        </div>
+        <SeatCard game={game} seat={opponent} mine={false} />
       </header>
 
       {game.status === "IN_PROGRESS" && (
-        <div className="turn">
-          <span>{myTurn ? "🐾 내 차례" : "상대 차례"}</span>
-          <span>{secondsLeft ?? ""}초</span>
+        <div className="turn" style={{ ["--accent" as string]: turnAccent }}>
+          <div className="turn-row">
+            <span className="turn-label">{myTurn ? "🐾 내 차례" : `${game.seats[opponent].nickname}의 차례`}</span>
+            <span className="turn-seconds">{secondsLeft ?? ""}초</span>
+          </div>
           <div className="timer-bar">
-            <i style={{ width: `${((secondsLeft ?? 0) / 20) * 100}%` }} />
+            <i style={{ width: `${((secondsLeft ?? 0) / TURN_SECONDS) * 100}%` }} />
           </div>
         </div>
       )}
 
-      <Board
-        cells={game.cells}
-        cellSize={cellSize}
-        disabled={!myTurn}
-        pendingKey={pendingKey}
-        onReveal={reveal}
-      />
+      {game.result && (
+        <section className="result-card" aria-label="대국 결과">
+          <h2 className={game.result.winner === me ? "win" : ""}>
+            {game.result.winner === null ? "무승부" : game.result.winner === me ? "승리!" : "패배"}
+          </h2>
+          <div className="result-score">
+            <CatArt skin={game.seats[me].skin} pose="face" size={44} />
+            <b style={{ color: accentOf(game.seats[me].skin) }}>{game.seats[me].score}</b>
+            <span>:</span>
+            <b style={{ color: accentOf(game.seats[opponent].skin) }}>{game.seats[opponent].score}</b>
+            <CatArt skin={game.seats[opponent].skin} pose="face" size={44} />
+          </div>
+          <p className="muted">{REASON_TEXT[game.result.reason]}</p>
+          <p className="muted small">흐린 회색 고양이는 아무도 찾지 못한 고양이입니다.</p>
+          <Link className="btn primary" to="/">
+            로비로
+          </Link>
+        </section>
+      )}
+
+      <Board skins={skins} cells={game.cells} cellSize={cellSize} disabled={!myTurn} pendingKey={pendingKey} onReveal={reveal} />
 
       {lastError && <p className="error">{errorMessage(lastError)}</p>}
       {game.outOfSync && game.status === "IN_PROGRESS" && (
@@ -95,41 +134,28 @@ export function PlayPage() {
         </p>
       )}
 
-      <footer className="play-footer">
-        <span>
-          숨은 고양이 <b>{25 - Object.values(game.cells).filter((c) => c.kind === "cat" && c.seat !== null).length}</b>마리
-        </span>
-        {game.status === "IN_PROGRESS" &&
-          (confirmForfeit ? (
-            <span>
-              <button className="danger" type="button" onClick={forfeit}>
+      {game.status === "IN_PROGRESS" && (
+        <footer className="play-footer">
+          <span>
+            숨은 고양이 <b>{TOTAL_CATS - found}</b>마리
+          </span>
+          {confirmForfeit ? (
+            <span className="row">
+              <button className="btn danger small" type="button" onClick={forfeit}>
                 기권 확정
               </button>
-              <button className="ghost" type="button" onClick={() => setConfirmForfeit(false)}>
+              <button className="btn ghost small" type="button" onClick={() => setConfirmForfeit(false)}>
                 계속하기
               </button>
             </span>
           ) : (
-            <button className="ghost" type="button" onClick={() => setConfirmForfeit(true)}>
+            <button className="btn ghost small" type="button" onClick={() => setConfirmForfeit(true)}>
               기권
             </button>
-          ))}
-      </footer>
-
-      {game.result && (
-        <section className="result">
-          <h2>
-            {game.result.winner === null ? "무승부" : game.result.winner === me ? "승리!" : "패배"}
-          </h2>
-          <p className="big">
-            {game.seats[me].score} : {game.seats[opponent].score}
-          </p>
-          <p className="muted">{REASON_TEXT[game.result.reason]}</p>
-          <Link className="primary" to="/">
-            로비로
-          </Link>
-        </section>
+          )}
+        </footer>
       )}
+
     </main>
   );
 }

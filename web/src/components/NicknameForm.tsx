@@ -31,7 +31,7 @@ export function NicknameForm() {
         autoComplete="off"
         onChange={(e) => setNickname(e.target.value)}
       />
-      <button className="primary" type="submit" disabled={submitting}>
+      <button className="btn primary block" type="submit" disabled={submitting}>
         게스트로 시작
       </button>
       {error && <p className="error">{error}</p>}

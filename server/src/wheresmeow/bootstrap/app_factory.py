@@ -28,7 +28,9 @@ def create_app(config: AppConfig | None = None, **overrides) -> tuple[Flask, Soc
     _register_connection_handlers(socketio, container)
 
     identity = container.http_identity
-    app.register_blueprint(create_account_blueprint(container.guest_service, identity.current_player))
+    app.register_blueprint(
+        create_account_blueprint(container.guest_service, container.guest_service, identity.current_player)
+    )
     app.register_blueprint(
         create_room_blueprint(container.room_service, container.room_service, identity.current_player_id)
     )

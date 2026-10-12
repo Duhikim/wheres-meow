@@ -12,7 +12,7 @@ class PlayerNotFound(DomainError):
 
 
 class GuestService:
-    """CreateGuest·Authenticate·GetPlayer 유스케이스 구현."""
+    """CreateGuest·Authenticate·GetPlayer·ChangeSkins 유스케이스 구현."""
 
     def __init__(
         self,
@@ -39,4 +39,10 @@ class GuestService:
         player = self._store.get(player_id)
         if player is None:
             raise PlayerNotFound(f"플레이어를 찾을 수 없습니다: {player_id}")
+        return player
+
+    def change_skins(self, player_id: str, skin_1p: int, skin_2p: int) -> Player:
+        player = self.get_player(player_id)
+        player.change_skins(skin_1p, skin_2p)
+        self._store.save(player)
         return player

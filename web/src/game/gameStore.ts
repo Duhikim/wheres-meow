@@ -7,6 +7,7 @@ import type { EndedPayload, GameAction, GameState, RevealedPayload, StartedPaylo
 interface GameStore {
   game: GameState | null;
   lastError: string | null; // 서버 error 이벤트의 code
+  connection: "connected" | "reconnecting"; // 소켓이 예기치 않게 끊겨 다시 붙는 중인지
   dispatch: (action: GameAction) => void;
   setError: (code: string | null) => void;
 }
@@ -14,6 +15,7 @@ interface GameStore {
 export const useGameStore = create<GameStore>((set) => ({
   game: null,
   lastError: null,
+  connection: "connected",
   dispatch: (action) => set((state) => ({ game: gameReducer(state.game, action) })),
   setError: (code) => set({ lastError: code }),
 }));
@@ -21,6 +23,11 @@ export const useGameStore = create<GameStore>((set) => ({
 export function bindGameEvents(socket: Socket): void {
   const { dispatch, setError } = useGameStore.getState();
   const rooms = useRoomStore.getState();
+  socket.on("connect", () => useGameStore.setState({ connection: "connected" }));
+  socket.on("disconnect", (reason: string) => {
+    // 직접 끊은 경우(토큰 교체, 세션 만료)는 다시 붙지 않으므로 재연결 표시를 하지 않는다
+    if (reason !== "io client disconnect") useGameStore.setState({ connection: "reconnecting" });
+  });
   socket.on("room:waiting", (payload: WaitingRoom) => rooms.setWaitingRoom(payload));
   socket.on("room:cancelled", () => rooms.clearWaitingRoom());
   socket.on("game:started", (payload: StartedPayload) => {

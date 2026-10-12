@@ -32,6 +32,14 @@ export const useSession = create<SessionState>()(
 // 서버 재시작 등으로 토큰이 무효가 되면 어느 화면에서든 세션을 지워 닉네임 입력으로 돌아간다
 setUnauthorizedHandler(() => useSession.getState().clear());
 
+/** 내 고양이 1P·2P 를 서버에 저장하고 세션의 내 정보를 갱신한다. */
+export async function saveSkins(skin1p: number, skin2p: number): Promise<void> {
+  const { token, setSession } = useSession.getState();
+  if (!token) throw new Error("로그인 세션이 없습니다");
+  const player = await api<Player>("/api/players/me/skins", { method: "PUT", body: { skin1p, skin2p }, token });
+  setSession(token, player);
+}
+
 export async function createGuest(nickname: string): Promise<void> {
   const result = await api<{ token: string; player: Player }>("/api/guests", {
     method: "POST",
