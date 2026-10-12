@@ -4,7 +4,12 @@ from flask_socketio import SocketIO, emit
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from wheresmeow.game.adapter.outbound.socket.payloads import snapshot_payload
-from wheresmeow.game.application.port.inbound import ForfeitUseCase, GetGameUseCase, RevealCellUseCase
+from wheresmeow.game.application.port.inbound import (
+    ForfeitUseCase,
+    GetGameUseCase,
+    RematchUseCase,
+    RevealCellUseCase,
+)
 from wheresmeow.shared.payload import parse_payload
 
 
@@ -25,6 +30,7 @@ def register_game_socket_handlers(
     reveal: RevealCellUseCase,
     forfeit: ForfeitUseCase,
     get_game: GetGameUseCase,
+    rematch: RematchUseCase,
     current_player_id: Callable[[], str],
 ) -> None:
     """결과는 GameEventPublisher 가 두 참가자에게 보낸다. 실패는 공통 오류 핸들러가 error 로 보낸다."""
@@ -38,6 +44,21 @@ def register_game_socket_handlers(
     def on_forfeit(data):
         request = parse_payload(GameRequest, data)
         forfeit.forfeit(request.gameId, current_player_id())
+
+    @socketio.on("game:rematch-request")
+    def on_rematch_request(data):
+        request = parse_payload(GameRequest, data)
+        rematch.request_rematch(request.gameId, current_player_id())
+
+    @socketio.on("game:rematch-decline")
+    def on_rematch_decline(data):
+        request = parse_payload(GameRequest, data)
+        rematch.decline_rematch(request.gameId, current_player_id())
+
+    @socketio.on("game:leave-result")
+    def on_leave_result(data):
+        request = parse_payload(GameRequest, data)
+        rematch.leave_result(request.gameId, current_player_id())
 
     @socketio.on("game:sync")
     def on_sync(data):

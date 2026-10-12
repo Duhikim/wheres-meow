@@ -83,7 +83,12 @@ def create_app(config: AppConfig | None = None, **overrides) -> tuple[Flask, Soc
         socketio, container.matchmaking_service, container.matchmaking_service, sessions.current_player_id
     )
     register_game_socket_handlers(
-        socketio, container.game_service, container.game_service, container.game_service, sessions.current_player_id
+        socketio,
+        container.game_service,
+        container.game_service,
+        container.game_service,
+        container.rematch_service,
+        sessions.current_player_id,
     )
 
     @app.get("/api/health")

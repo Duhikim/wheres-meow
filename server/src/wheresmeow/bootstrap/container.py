@@ -29,7 +29,9 @@ from wheresmeow.game.adapter.outbound.persistence.sql_game_result_recorder impor
 from wheresmeow.game.adapter.outbound.socket.socketio_game_event_publisher import SocketIOGameEventPublisher
 from wheresmeow.game.adapter.outbound.timer.background_turn_timer import BackgroundTurnTimer
 from wheresmeow.game.application.port.outbound import TurnTimer
+from wheresmeow.game.adapter.outbound.socket.socketio_rematch_notifier import SocketIORematchNotifier
 from wheresmeow.game.application.service.game_service import GameService
+from wheresmeow.game.application.service.rematch_service import RematchService
 from wheresmeow.game.domain.board import MineLayoutGenerator, RandomMineLayoutGenerator, SeededMineLayoutGenerator
 from wheresmeow.matchmaking.adapter.inbound.match_ticker import Repeater, socketio_repeater
 from wheresmeow.matchmaking.adapter.outbound.adapters import (
@@ -64,6 +66,7 @@ class Container:
     member_service: MemberService
     authenticator: Authenticator
     game_service: GameService
+    rematch_service: RematchService
     room_service: RoomService
     bot_service: BotService
     rating_query_service: RatingQueryService
@@ -110,12 +113,13 @@ def build_container(
     )
     authenticator = Authenticator(players, guest_tokens, access_tokens)
 
+    timer = turn_timer or BackgroundTurnTimer(socketio, clock)  # 턴 마감과 재대결 마감이 함께 쓴다
     game_options = {"first_seat_chooser": first_seat_chooser} if first_seat_chooser else {}
     bot_driver = BotTurnDriver(bot_scheduler or socketio_scheduler(socketio))
     game_service = GameService(
         InMemoryGameStore(),
         CompositeGameEventPublisher([SocketIOGameEventPublisher(socketio), bot_driver]),
-        turn_timer or BackgroundTurnTimer(socketio, clock),
+        timer,
         layout_generator,
         clock,
         recorder=SqlGameResultRecorder(database, clock, contributors=[BotRecordContributor(), RatingContributor(clock)]),
@@ -123,6 +127,9 @@ def build_container(
     )
 
     bot_driver.attach(get_game=game_service, reveal=game_service)
+    rematch_service = RematchService(
+        game_service, SocketIORematchNotifier(socketio), timer, clock
+    )
     bot_service = BotService(
         AccountHumanDirectory(guest_service), BotGameStarterAdapter(game_service), SqlBotRecordReader(database)
     )
@@ -154,6 +161,7 @@ def build_container(
         member_service=member_service,
         authenticator=authenticator,
         game_service=game_service,
+        rematch_service=rematch_service,
         room_service=room_service,
         bot_service=bot_service,
         rating_query_service=rating_query_service,

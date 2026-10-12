@@ -7,6 +7,8 @@ import type {
   EndedPayload,
   GameAction,
   GameState,
+  RematchCancelReason,
+  RematchState,
   RevealedPayload,
   StartedPayload,
   StatePayload,
@@ -17,16 +19,24 @@ interface GameStore {
   game: GameState | null;
   lastError: string | null; // 서버 error 이벤트의 code
   connection: "connected" | "reconnecting"; // 소켓이 예기치 않게 끊겨 다시 붙는 중인지
+  rematch: RematchState | null;
   dispatch: (action: GameAction) => void;
   setError: (code: string | null) => void;
+  markRematchRequested: (gameId: string) => void;
+}
+
+function rematchOf(current: RematchState | null, gameId: string): RematchState {
+  return current?.gameId === gameId ? current : { gameId, mine: false, theirs: false, cancelled: null };
 }
 
 export const useGameStore = create<GameStore>((set) => ({
   game: null,
   lastError: null,
   connection: "connected",
+  rematch: null,
   dispatch: (action) => set((state) => ({ game: gameReducer(state.game, action) })),
   setError: (code) => set({ lastError: code }),
+  markRematchRequested: (gameId) => set((state) => ({ rematch: { ...rematchOf(state.rematch, gameId), mine: true } })),
 }));
 
 export function bindGameEvents(socket: Socket): void {
@@ -52,8 +62,15 @@ export function bindGameEvents(socket: Socket): void {
     setError(null);
     rooms.clearWaitingRoom();
     match.clearWaiting();
+    useGameStore.setState({ rematch: null });
     dispatch({ type: "started", payload });
   });
+  socket.on("game:rematch-requested", ({ gameId }: { gameId: string }) =>
+    useGameStore.setState((state) => ({ rematch: { ...rematchOf(state.rematch, gameId), theirs: true } })),
+  );
+  socket.on("game:rematch-cancelled", ({ gameId, reason }: { gameId: string; reason: RematchCancelReason }) =>
+    useGameStore.setState((state) => ({ rematch: { ...rematchOf(state.rematch, gameId), cancelled: reason } })),
+  );
   socket.on("game:state", (payload: StatePayload) => dispatch({ type: "state", payload }));
   socket.on("game:revealed", (payload: RevealedPayload) => dispatch({ type: "revealed", payload }));
   socket.on("game:timeout", (payload: TimeoutPayload) => dispatch({ type: "timeout", payload }));

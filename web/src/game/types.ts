@@ -77,6 +77,16 @@ export interface StatePayload extends StartedPayload {
   cats?: [number, number][];
 }
 
+export type RematchCancelReason = "DECLINED" | "EXPIRED" | "LEFT" | "UNAVAILABLE";
+
+/** 끝난 대국 하나의 재대결 협상 상태. */
+export interface RematchState {
+  gameId: string;
+  mine: boolean; // 내가 신청했다
+  theirs: boolean; // 상대가 신청했다
+  cancelled: RematchCancelReason | null;
+}
+
 // 화면 상태
 
 export type Cell =

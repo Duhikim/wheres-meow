@@ -11,6 +11,7 @@ from wheresmeow.game.domain.errors import AlreadyInGame, GameNotFound
 from wheresmeow.game.domain.game import Game, GameEvent, GameMode, GameStatus, RatingChange, Seat
 from wheresmeow.game.domain.skins import assign_skins
 from wheresmeow.shared.clock import Clock
+from wheresmeow.shared.errors import InvalidInput
 
 logger = logging.getLogger(__name__)
 
@@ -49,21 +50,33 @@ class GameService:
     def start_game(
         self, mode: GameMode, priority: GamePlayer, other: GamePlayer, bot_difficulty: str | None = None
     ) -> Game:
-        for player in (priority, other):
-            if self._store.find_active_by_player(player.player_id) is not None:
-                raise AlreadyInGame(f"이미 진행 중인 대국이 있습니다: {player.player_id}")
-        skin_0, skin_1 = assign_skins(priority.skins, other.skins)
-        board = Board(BOARD_SIZE, self._layout_generator.generate(BOARD_SIZE, CAT_COUNT))
         if (mode is GameMode.BOT) != (bot_difficulty is not None):
             raise ValueError("컴퓨터 대전에만 난이도를 지정합니다")
+        skin_0, skin_1 = assign_skins(priority.skins, other.skins)
         seats = (
             Seat(priority.player_id, priority.nickname, skin_0, is_bot=priority.is_bot),
             Seat(other.player_id, other.nickname, skin_1, is_bot=other.is_bot),
         )
-        game = Game(
-            self._id_factory(), mode, board, seats, self._first_seat_chooser(), self._clock.now_ms(),
-            bot_difficulty=bot_difficulty,
+        return self._open(mode, seats, self._first_seat_chooser(), bot_difficulty)
+
+    def start_rematch(self, previous: Game) -> Game:
+        """같은 두 사람·모드·스킨 배정으로, 직전 대국의 후공이 선공인 새 대국을 연다(스펙 2절·4.1)."""
+        if previous.status is not GameStatus.FINISHED:
+            raise InvalidInput(f"끝나지 않은 대국으로는 재대결을 만들 수 없습니다: {previous.id}")
+        seats = (
+            Seat(previous.seats[0].player_id, previous.seats[0].nickname, previous.seats[0].skin,
+                 is_bot=previous.seats[0].is_bot),
+            Seat(previous.seats[1].player_id, previous.seats[1].nickname, previous.seats[1].skin,
+                 is_bot=previous.seats[1].is_bot),
         )
+        return self._open(previous.mode, seats, 1 - previous.first_seat, previous.bot_difficulty)
+
+    def _open(self, mode: GameMode, seats: tuple[Seat, Seat], first_seat: int, bot_difficulty: str | None) -> Game:
+        for seat in seats:
+            if self._store.find_active_by_player(seat.player_id) is not None:
+                raise AlreadyInGame(f"이미 진행 중인 대국이 있습니다: {seat.player_id}")
+        board = Board(BOARD_SIZE, self._layout_generator.generate(BOARD_SIZE, CAT_COUNT))
+        game = Game(self._id_factory(), mode, board, seats, first_seat, self._clock.now_ms(), bot_difficulty=bot_difficulty)
         with self._lock_for(game.id):
             self._store.save(game)
             self._publisher.game_started(game)

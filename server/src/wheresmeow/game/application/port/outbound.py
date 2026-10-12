@@ -39,3 +39,13 @@ class GameResultRecorder(Protocol):
         실패하면 예외를 던진다(호출 측이 로그를 남긴다).
         """
         ...
+
+
+class RematchNotifier(Protocol):
+    def rematch_requested(self, game_id: str, to_player_id: str) -> None:
+        """game:rematch-requested. 상대에게 수락·거절 버튼을 띄우게 한다."""
+        ...
+
+    def rematch_cancelled(self, game_id: str, to_player_ids: list[str], reason: str) -> None:
+        """game:rematch-cancelled. reason 은 DECLINED·EXPIRED·LEFT·UNAVAILABLE."""
+        ...

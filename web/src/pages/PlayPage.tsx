@@ -1,25 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { CatArt } from "../art/Art";
 import { SKIN_ACCENT, skinConfig } from "../art/skins";
 import { Board } from "../components/Board";
+import { ResultCard } from "../components/ResultCard";
 import { errorMessage } from "../errorMessages";
 import { computeCellSize } from "../game/cellSize";
 import { useGameStore } from "../game/gameStore";
+import { cancelLeaveResult, scheduleLeaveResult } from "../game/leaveResult";
 import { useSecondsLeft, useViewportWidth } from "../game/hooks";
-import { formatDelta, myRatingChange } from "../game/rating";
 import { cellKey, type GameState, type SeatIndex } from "../game/types";
 import { useSession } from "../session/sessionStore";
 import { getSocket } from "../socket/socket";
 
 const TURN_SECONDS = 20;
 const TOTAL_CATS = 25;
-
-const REASON_TEXT: Record<NonNullable<GameState["result"]>["reason"], string> = {
-  ALL_FOUND: "고양이 25마리를 모두 찾았습니다",
-  FORFEIT: "기권으로 끝났습니다",
-  AUTO_FORFEIT: "시간 초과 3회 연속으로 자동 기권되었습니다",
-};
 
 const accentOf = (skin: number) => SKIN_ACCENT[skinConfig(skin).coat];
 
@@ -44,6 +39,8 @@ export function PlayPage() {
   const game = useGameStore((s) => s.game);
   const lastError = useGameStore((s) => s.lastError);
   const connection = useGameStore((s) => s.connection);
+  const rematch = useGameStore((s) => s.rematch);
+  const navigate = useNavigate();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [confirmForfeit, setConfirmForfeit] = useState(false);
   const secondsLeft = useSecondsLeft(game?.turnDeadline ?? null);
@@ -54,8 +51,22 @@ export function PlayPage() {
   // 새 이벤트가 오거나 오류가 오면 대기 중 표시를 푼다
   useEffect(() => setPendingKey(null), [game?.version, lastError]);
 
+  // 결과 화면에서 재대결이 시작되면 새 대국으로 옮겨 간다
+  const rematchStarted = !!game && game.status === "IN_PROGRESS" && game.gameId !== gameId;
+  useEffect(() => {
+    if (rematchStarted && game) navigate(`/play/${game.gameId}`, { replace: true });
+  }, [rematchStarted, game, navigate]);
+
+  // 끝난 대국 화면을 떠나면(로비, 새 대국) 상대에게 더는 재대결을 받을 수 없다고 알린다
+  const finishedHere = !!game && game.gameId === gameId && game.status === "FINISHED";
+  useEffect(() => {
+    if (!finishedHere || !token || !gameId) return;
+    cancelLeaveResult(gameId);
+    return () => scheduleLeaveResult(gameId, () => getSocket(token).emit("game:leave-result", { gameId }));
+  }, [finishedHere, token, gameId]);
+
   // 새로고침으로 들어왔거나(대국 정보 없음) 이벤트를 놓쳐 어긋났으면 서버에 전체 상태를 요청한다
-  const needsSync = !game || game.gameId !== gameId || game.outOfSync;
+  const needsSync = !rematchStarted && (!game || game.gameId !== gameId || game.outOfSync);
   useEffect(() => {
     if (!token || !gameId || !needsSync) return;
     const key = `${gameId}:${game?.version ?? "none"}`;
@@ -87,7 +98,11 @@ export function PlayPage() {
   const turnAccent = accentOf(game.seats[game.currentSeat].skin);
   const found = Object.values(game.cells).filter((c) => c.kind === "cat" && c.seat !== null).length;
   const skins: [number, number] = [game.seats[0].skin, game.seats[1].skin];
-  const ratingChange = myRatingChange(game);
+
+  function requestRematch() {
+    useGameStore.getState().markRematchRequested(game!.gameId);
+    socket.emit("game:rematch-request", { gameId: game!.gameId });
+  }
 
   function reveal(x: number, y: number) {
     useGameStore.getState().setError(null);
@@ -131,31 +146,13 @@ export function PlayPage() {
         </div>
       )}
 
-      {game.result && (
-        <section className="result-card" aria-label="대국 결과">
-          <h2 className={game.result.winner === me ? "win" : ""}>
-            {game.result.winner === null ? "무승부" : game.result.winner === me ? "승리!" : "패배"}
-          </h2>
-          <div className="result-score">
-            <CatArt skin={game.seats[me].skin} pose="face" size={44} />
-            <b style={{ color: accentOf(game.seats[me].skin) }}>{game.seats[me].score}</b>
-            <span>:</span>
-            <b style={{ color: accentOf(game.seats[opponent].skin) }}>{game.seats[opponent].score}</b>
-            <CatArt skin={game.seats[opponent].skin} pose="face" size={44} />
-          </div>
-          <p className="muted">{REASON_TEXT[game.result.reason]}</p>
-          {ratingChange && (
-            <p className="rating-change">
-              레이팅 {ratingChange.before} → <b>{ratingChange.after}</b>{" "}
-              <span className={ratingChange.delta >= 0 ? "up" : "down"}>({formatDelta(ratingChange.delta)})</span>
-            </p>
-          )}
-          <p className="muted small">흐린 회색 고양이는 아무도 찾지 못한 고양이입니다.</p>
-          <Link className="btn primary" to="/">
-            로비로
-          </Link>
-        </section>
-      )}
+      <ResultCard
+        game={game}
+        rematch={rematch}
+        onRequestRematch={requestRematch}
+        onDeclineRematch={() => socket.emit("game:rematch-decline", { gameId: game.gameId })}
+        onLeave={() => socket.emit("game:leave-result", { gameId: game.gameId })}
+      />
 
       <Board skins={skins} cells={game.cells} cellSize={cellSize} disabled={!myTurn} pendingKey={pendingKey} onReveal={reveal} />
 

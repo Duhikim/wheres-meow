@@ -31,3 +31,7 @@ class AlreadyInGame(DomainError):
 
 class InvalidSkin(DomainError):
     code = "INVALID_SKIN"
+
+
+class RematchExpired(DomainError):
+    code = "REMATCH_EXPIRED"
