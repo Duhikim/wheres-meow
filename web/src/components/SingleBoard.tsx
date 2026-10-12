@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { CatArt, GrassArt, PawArt } from "../art/Art";
+import { CatArt, DirtArt, GrassArt, PawArt } from "../art/Art";
 import type { SingleState } from "../single/engine";
 
 const LONG_PRESS_MS = 400;
@@ -59,13 +59,27 @@ export function SingleBoard({ state, skin, cellSize, onTap, onLongPress }: Props
           )}
         </>
       );
+      const index = y * state.width + x;
       if (n !== undefined) {
         className = "cell open";
-        content = n > 0 ? <PawArt n={n} /> : <></>;
+        content = (
+          <>
+            <DirtArt index={index} className="ground" />
+            {n > 0 && <PawArt n={n} className="mark" />}
+          </>
+        );
       } else if (isCat) {
         const exploded = key === state.explodedKey;
         className = `cell cat${exploded ? " exploded" : flagged ? "" : " unfound"}`;
-        content = <CatArt skin={flagged || state.status === "WON" ? skin : UNFOUND_SKIN} className={exploded ? "pop" : ""} />;
+        content = (
+          <>
+            {!exploded && <DirtArt index={index} className="ground" />}
+            <CatArt
+              skin={flagged || state.status === "WON" ? skin : UNFOUND_SKIN}
+              className={`mark${exploded ? " pop" : ""}`}
+            />
+          </>
+        );
       } else if (ended && flagged) {
         className = "cell closed wrong-flag"; // 고양이가 없는데 깃발을 꽂았다
       }

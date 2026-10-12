@@ -42,6 +42,7 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       status: "IN_PROGRESS",
       result: null,
       outOfSync: false,
+      lastMove: null,
     };
   }
   if (action.type === "state") {
@@ -61,6 +62,7 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       status: p.status,
       result: p.result,
       outOfSync: false,
+      lastMove: null,
     };
   }
   if (!state || action.payload.gameId !== state.gameId) return state;
@@ -79,6 +81,7 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
         currentSeat: p.currentSeat,
         turnDeadline: p.turnDeadline,
         version: p.version,
+        lastMove: { seat: p.seat, x: p.move.x, y: p.move.y, version: p.version },
       };
     }
     case "timeout": {

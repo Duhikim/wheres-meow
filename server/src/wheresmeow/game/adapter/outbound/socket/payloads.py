@@ -69,6 +69,7 @@ def event_payload(game: Game, event: GameEvent) -> tuple[str, dict[str, Any]]:
             return "game:revealed", {
                 "gameId": game_id,
                 "seat": event.seat,
+                "move": {"x": event.x, "y": event.y},
                 "cells": [cell_payload(c) for c in event.cells],
                 "scores": list(event.scores),
                 "currentSeat": event.current_seat,

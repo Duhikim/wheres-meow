@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSession } from "../session/sessionStore";
 import { newGame, reveal, seededRandom } from "../single/engine";
-import { SinglePlayPage } from "./SinglePlayPage";
+import { SinglePlayPage, soundOfStep } from "./SinglePlayPage";
 import { SingleSelectPage } from "./SingleSelectPage";
 
 const player = { id: "p1", kind: "GUEST" as const, nickname: "연습냥", skin1p: 16, skin2p: 17 };
@@ -127,5 +127,23 @@ describe("SinglePlayPage", () => {
     renderAt("/single/IMPOSSIBLE");
 
     expect(screen.getByText("혼자 연습")).toBeTruthy();
+  });
+});
+
+describe("soundOfStep", () => {
+  const base = reveal(newGame("BEGINNER"), 4, 4, 0, seededRandom(3));
+  const cats = [...base.cats!];
+
+  it("[성공] 고양이를 건드리면 고양이 소리다", () => {
+    const [x, y] = cats[0].split(",").map(Number);
+    expect(soundOfStep(base, reveal(base, x, y, 1, seededRandom(3)))).toBe("cat");
+  });
+
+  it("[성공] 숫자 칸이 새로 열리면 발자국 소리고, 빈 흙만 열리면 흙 소리다", () => {
+    const fresh = newGame("BEGINNER");
+    const first = reveal(fresh, 4, 4, 0, seededRandom(3));
+    const hasNumber = [...first.opened.values()].some((n) => n > 0);
+    expect(soundOfStep(fresh, first)).toBe(hasNumber ? "paw" : "dirt");
+    expect(soundOfStep(first, { ...first, opened: new Map([...first.opened, ["99,99", 0]]) })).toBe("dirt");
   });
 });

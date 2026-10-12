@@ -15,10 +15,17 @@ import { SignupPage } from "./pages/SignupPage";
 import { SinglePlayPage } from "./pages/SinglePlayPage";
 import { SingleSelectPage } from "./pages/SingleSelectPage";
 import { verifySession } from "./session/sessionStore";
+import { unlockAudio } from "./sound/sound";
 
 export function App() {
   useEffect(() => {
     verifySession().catch((error) => console.error("세션 확인 실패", error));
+  }, []);
+
+  // 휴대폰 브라우저는 사용자가 화면을 누르기 전에는 소리를 막는다. 어디든 처음 누를 때 오디오를 깨운다.
+  useEffect(() => {
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    return () => window.removeEventListener("pointerdown", unlockAudio);
   }, []);
 
   return (

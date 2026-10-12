@@ -42,6 +42,7 @@ const base: GameState = {
   status: "IN_PROGRESS",
   result: null,
   outOfSync: false,
+      lastMove: null,
 };
 
 describe("gameIdToEnter", () => {

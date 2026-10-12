@@ -55,3 +55,4 @@ class TestPayloads:
             assert name == "game:revealed"
             assert payload["cells"] == [{"x": 1, "y": 0, "kind": "number", "n": 1}]
             assert payload["currentSeat"] == 1
+            assert payload["move"] == {"x": 1, "y": 0}  # 누른 칸. 상대 화면이 그 칸에 이펙트를 띄운다

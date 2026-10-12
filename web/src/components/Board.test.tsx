@@ -78,4 +78,33 @@ describe("Board", () => {
     expect(screen.getByLabelText("1,0").dataset.skin).toBe("9");
     expect(screen.getByLabelText("2,0").className).toContain("unfound");
   });
+
+  it("[성공] 상대가 둔 칸에 앞발과 물결 이펙트를 그 칸 위치에 띄운다", () => {
+    const { container } = render(
+      <Board
+        skins={[16, 17]}
+        cells={{}}
+        cellSize={28}
+        disabled
+        pendingKey={null}
+        onReveal={() => {}}
+        opponentMove={{ x: 2, y: 1, seat: 1, version: 5 }}
+      />,
+    );
+
+    const fx = container.querySelector(".opp-move") as HTMLElement;
+    expect(fx).not.toBeNull();
+    expect(fx.style.left).toBe(`${4 + 2 * 29}px`); // 판 안쪽 여백 4px + (칸 28px + 틈 1px) × x
+    expect(fx.style.top).toBe(`${4 + 1 * 29}px`);
+    expect(fx.querySelector(".opp-paw")).not.toBeNull();
+    expect(fx.querySelector(".opp-ripple")).not.toBeNull();
+  });
+
+  it("[성공] 상대 수가 없으면 이펙트도 없다", () => {
+    const { container } = render(
+      <Board skins={[16, 17]} cells={{}} cellSize={28} disabled={false} pendingKey={null} onReveal={() => {}} />,
+    );
+
+    expect(container.querySelector(".opp-move")).toBeNull();
+  });
 });

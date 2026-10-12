@@ -1,5 +1,5 @@
 import { useId, useMemo, type CSSProperties } from "react";
-import { catSvg, grassSvg, pawSvg } from "./svg";
+import { catSvg, dirtSvg, grassSvg, pawSvg, pawSwipeSvg } from "./svg";
 
 interface ArtProps {
   size?: number | string;
@@ -35,5 +35,15 @@ export function GrassArt({ index, ...rest }: ArtProps & { index: number }) {
 
 export function PawArt({ n, ...rest }: ArtProps & { n: number }) {
   const html = useMemo(() => pawSvg(n), [n]);
+  return <Svg html={html} {...rest} />;
+}
+
+export function DirtArt({ index, ...rest }: ArtProps & { index: number }) {
+  const html = useMemo(() => dirtSvg(index), [index]);
+  return <Svg html={html} {...rest} />;
+}
+
+export function PawSwipeArt({ skin, ...rest }: ArtProps & { skin: number }) {
+  const html = useMemo(() => pawSwipeSvg(skin), [skin]);
   return <Svg html={html} {...rest} />;
 }

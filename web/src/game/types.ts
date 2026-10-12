@@ -27,6 +27,7 @@ export interface StartedPayload {
 export interface RevealedPayload {
   gameId: string;
   seat: SeatIndex;
+  move: { x: number; y: number }; // 누른 칸. 연쇄로 여러 칸이 열려도 이 칸 하나다
   cells: CellPayload[];
   scores: [number, number];
   currentSeat: SeatIndex;
@@ -106,6 +107,14 @@ export interface GameState {
   status: "IN_PROGRESS" | "FINISHED";
   result: GameResult | null;
   outOfSync: boolean; // version 이 건너뛰었다. 2단계에서 game:sync 로 복구한다
+  lastMove: LastMove | null; // 가장 최근에 칸을 연 수. 상대 수 이펙트에 쓴다
+}
+
+export interface LastMove {
+  seat: SeatIndex;
+  x: number;
+  y: number;
+  version: number; // 같은 칸을 다시 눌러도 이펙트를 새로 틀기 위한 구분값
 }
 
 export type GameAction =

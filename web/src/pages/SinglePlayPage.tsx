@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { api, ApiError } from "../api/http";
 import { SingleBoard } from "../components/SingleBoard";
+import { SoundToggle } from "../components/SoundToggle";
+import { playSound } from "../sound/sound";
 import { errorMessage } from "../errorMessages";
 import { computeCellSize } from "../game/cellSize";
 import { useViewportWidth } from "../game/hooks";
@@ -18,7 +20,9 @@ import {
   toggleFlag,
   type Difficulty,
   type Random,
+  type SingleState,
 } from "../single/engine";
+import type { SoundKind } from "../sound/sound";
 import { formatDuration } from "../single/format";
 import { SingleSelectPage } from "./SingleSelectPage";
 
@@ -37,6 +41,13 @@ function useNow(active: boolean): number {
     return () => clearInterval(id);
   }, [active]);
   return active ? now : Date.now();
+}
+
+/** 한 번 눌러 바뀐 판으로 낼 소리. 고양이를 건드리면 울음, 숫자가 드러나면 발자국, 빈 흙만 열리면 흙 소리다. */
+export function soundOfStep(before: SingleState, after: SingleState): SoundKind {
+  if (after.status === "LOST") return "cat";
+  for (const [key, n] of after.opened) if (!before.opened.has(key) && n > 0) return "paw";
+  return "dirt";
 }
 
 function isDifficulty(raw: string | undefined): raw is Difficulty {
@@ -82,9 +93,13 @@ function SingleGame({ difficulty }: { difficulty: Difficulty }) {
   // 시드 난수를 두 번 소비하면 첫 칸의 고양이 배치가 달라진다. 누를 때마다 현재 상태로 한 번만 계산한다.
   function tap(x: number, y: number) {
     const key = `${x},${y}`;
-    if (flagMode) setState(toggleFlag(state, x, y));
-    else if (state.opened.has(key)) setState(chord(state, x, y, Date.now()));
-    else setState(reveal(state, x, y, Date.now(), random.current));
+    if (flagMode) {
+      setState(toggleFlag(state, x, y));
+      return;
+    }
+    const next = state.opened.has(key) ? chord(state, x, y, Date.now()) : reveal(state, x, y, Date.now(), random.current);
+    if (next !== state) playSound(soundOfStep(state, next));
+    setState(next);
   }
 
   function restart() {
@@ -105,6 +120,7 @@ function SingleGame({ difficulty }: { difficulty: Difficulty }) {
         <span className="spacer" />
         <b>{`🐱 ${remainingCats(state)}`}</b>
         <b className="single-time">{formatDuration(elapsedMs(state, now))}</b>
+        <SoundToggle />
       </div>
 
       {ended && (

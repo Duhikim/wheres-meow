@@ -96,7 +96,11 @@ a:not(.btn) { color: var(--grass-dark); font-weight: 700; }
 .seat-card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--card); border-radius: 14px;
              border: 2px solid transparent; transition: border-color .2s ease; }
 .seat-card.right { flex-direction: row-reverse; text-align: right; }
-.seat-card.active { border-color: var(--accent); }
+.seat-card { transition: border-color .2s ease, background-color .25s ease, opacity .25s ease, transform .25s ease; }
+.seat-card.active { border-color: var(--accent); background: var(--accent); color: #fff; transform: scale(1.04); box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
+.seat-card.active .score, .seat-card.active .seat-name small { color: #fff; }
+.seat-card.waiting { opacity: .55; transform: scale(.95); }
+.turn-arrow { font-weight: 800; font-size: 18px; color: #6b7a5e; }
 .seat-name { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
 .seat-name b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .seat-name small { font-size: 11px; color: var(--muted); }
@@ -109,10 +113,32 @@ a:not(.btn) { color: var(--grass-dark); font-weight: 700; }
 .turn-label.thinking { animation: breathe 1.2s ease-in-out infinite; }
 @keyframes breathe { 50% { opacity: .45; } }
 .timer-bar { height: 6px; margin-top: 4px; background: var(--line); border-radius: 3px; overflow: hidden; }
-.timer-bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width .25s linear; }
+.timer-bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.timer-bar.urgent i { background: #d9443a; animation: urgent .5s steps(2, jump-none) infinite; }
+.turn-seconds.urgent { color: #d9443a; }
+@keyframes urgent { 50% { opacity: .5; } }
 
 .board { display: grid; gap: 1px; padding: 4px; background: var(--grass-deep); border-radius: 10px; box-shadow: 0 4px 0 #2a4818; }
-.cell { padding: 0; border: 0; border-radius: 3px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--dirt); }
+.cell { padding: 0; border: 0; border-radius: 3px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--dirt); position: relative; }
+/* 열린 칸: 흙 바닥(ground) 위에 발자국·고양이(mark)를 겹친다 */
+.cell .ground, .cell .mark { position: absolute; inset: 0; }
+.board { position: relative; }
+
+/* 상대 수 이펙트(시안 1-A+C): 앞발이 내려와 톡 치고, 물결이 두 번 퍼진다 */
+.opp-move { position: absolute; pointer-events: none; z-index: 2; }
+.opp-move .opp-paw { position: absolute; left: 6%; width: 88%; height: 120%; top: -40%; animation: opp-paw .7s cubic-bezier(.3, .9, .4, 1) forwards; }
+.opp-move .opp-ripple { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--opp); opacity: 0; animation: opp-ripple .8s ease-out .3s forwards; }
+.opp-move .opp-ripple.second { animation-delay: .45s; }
+@keyframes opp-paw {
+  0% { transform: translateY(-120%) rotate(-12deg); opacity: 0; }
+  40% { transform: translateY(0) rotate(0); opacity: 1; }
+  55% { transform: translateY(6%) scale(.95); opacity: 1; }
+  100% { transform: translateY(-110%) rotate(8deg); opacity: 0; }
+}
+@keyframes opp-ripple {
+  from { transform: scale(.4); opacity: .95; }
+  to { transform: scale(2.6); opacity: 0; }
+}
 .cell.closed:enabled { cursor: pointer; }
 .cell.closed:enabled:active { filter: brightness(1.15); }
 .cell.pending { filter: brightness(1.25) saturate(.8); }
@@ -132,7 +158,9 @@ a:not(.btn) { color: var(--grass-dark); font-weight: 700; }
 .result-score { display: flex; align-items: center; gap: 10px; font-size: 28px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .pop, .result-card, .turn-label.thinking { animation: none; }
+  .pop, .result-card, .turn-label.thinking, .timer-bar.urgent i, .opp-move .opp-paw { animation: none; }
+  .opp-move .opp-paw { display: none; }
+  .opp-move .opp-ripple { animation-duration: .01s; }
   .btn, .seat-card, .timer-bar i { transition: none; }
 }
 

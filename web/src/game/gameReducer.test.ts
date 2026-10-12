@@ -35,6 +35,7 @@ describe("gameReducer", () => {
         type: "revealed",
         payload: {
           gameId: "g1",
+          move: { x: 0, y: 0 },
           seat: 0,
           cells: [
             { x: 3, y: 4, kind: "cat", seat: 0 },
@@ -59,7 +60,7 @@ describe("gameReducer", () => {
 
       const state = gameReducer(before, {
         type: "revealed",
-        payload: { gameId: "g1", seat: 0, cells: [], scores: [5, 5], currentSeat: 1, turnDeadline: 1, version: 2 },
+        payload: { gameId: "g1", seat: 0, move: { x: 0, y: 0 }, cells: [], scores: [5, 5], currentSeat: 1, turnDeadline: 1, version: 2 },
       })!;
 
       expect(state.outOfSync).toBe(true);
@@ -72,7 +73,7 @@ describe("gameReducer", () => {
 
       const state = gameReducer(before, {
         type: "revealed",
-        payload: { gameId: "other", seat: 0, cells: [], scores: [1, 0], currentSeat: 1, turnDeadline: 1, version: 1 },
+        payload: { gameId: "other", seat: 0, move: { x: 0, y: 0 }, cells: [], scores: [1, 0], currentSeat: 1, turnDeadline: 1, version: 1 },
       });
 
       expect(state).toBe(before);
@@ -113,6 +114,7 @@ describe("gameReducer", () => {
         type: "revealed",
         payload: {
           gameId: "g1",
+          move: { x: 0, y: 0 },
           seat: 0,
           cells: [{ x: 1, y: 1, kind: "cat", seat: 0 }],
           scores: [1, 0],
@@ -187,6 +189,27 @@ describe("gameReducer", () => {
       expect(state.result?.ratingChanges?.[0]).toEqual({ before: 990, after: 1000 });
       expect(state.cells["5,5"]).toEqual({ kind: "cat", seat: null });
       expect(state.turnDeadline).toBeNull();
+    });
+  });
+
+  describe("lastMove", () => {
+    it("[성공] 공개 이벤트의 누른 칸과 둔 좌석을 기억하고, 새 대국이면 지운다", () => {
+      const state = gameReducer(start(), {
+        type: "revealed",
+        payload: {
+          gameId: "g1",
+          seat: 1,
+          move: { x: 3, y: 4 },
+          cells: [{ x: 3, y: 4, kind: "number", n: 1 }],
+          scores: [0, 0],
+          currentSeat: 0,
+          turnDeadline: 1,
+          version: 1,
+        },
+      })!;
+
+      expect(state.lastMove).toEqual({ seat: 1, x: 3, y: 4, version: 1 });
+      expect(start().lastMove).toBeNull();
     });
   });
 });

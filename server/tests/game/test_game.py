@@ -54,6 +54,14 @@ class TestGame:
                 Game("g", GameMode.INVITE, Board(4, CATS), (Seat(A, "a", 16), Seat(A, "a", 17)), 0, 0)
 
     class TestReveal:
+        def test_성공_공개_이벤트에_누른_칸을_남긴다_연쇄로_여러_칸이_열려도(self):
+            game = make_game()
+
+            [revealed] = game.reveal(A, 0, 3, now_ms=1)  # 빈 칸 → 여러 칸이 함께 열린다
+
+            assert (revealed.x, revealed.y) == (0, 3)
+            assert len(revealed.cells) > 1
+
         def test_성공_고양이를_찾으면_1점을_얻고_한번_더_둔다(self):
             game = make_game()
 

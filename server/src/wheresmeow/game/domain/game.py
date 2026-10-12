@@ -56,6 +56,8 @@ class OpenedCell:
 class CellsRevealed:
     version: int
     seat: int
+    x: int  # 누른 칸. 연쇄로 여러 칸이 열려도 이 칸 하나다
+    y: int
     cells: tuple[OpenedCell, ...]
     scores: tuple[int, int]
     current_seat: int
@@ -160,13 +162,13 @@ class Game:
             mover.score += 1
             if self.found_count == len(self.board.cats):
                 self._finish(EndReason.ALL_FOUND, self._leader())
-                return [self._revealed(seat, (cell,)), self._ended()]
+                return [self._revealed(seat, x, y, (cell,)), self._ended()]
             self._start_turn(seat, now_ms)  # 고양이를 찾으면 한 번 더
-            return [self._revealed(seat, (cell,))]
+            return [self._revealed(seat, x, y, (cell,))]
 
         cells = self._flood_open(x, y)
         self._start_turn(1 - seat, now_ms)
-        return [self._revealed(seat, cells)]
+        return [self._revealed(seat, x, y, cells)]
 
     def timeout(self, turn_seq: int, now_ms: int) -> list[GameEvent]:
         """타이머 만료. 이미 지나간 턴의 타이머면 아무것도 하지 않는다."""
@@ -233,9 +235,9 @@ class Game:
         self.version += 1
         return self.version
 
-    def _revealed(self, seat: int, cells: tuple[OpenedCell, ...]) -> CellsRevealed:
+    def _revealed(self, seat: int, x: int, y: int, cells: tuple[OpenedCell, ...]) -> CellsRevealed:
         return CellsRevealed(
-            self._next_version(), seat, cells, self.scores, self.current_seat, self.turn_deadline_ms
+            self._next_version(), seat, x, y, cells, self.scores, self.current_seat, self.turn_deadline_ms
         )
 
     def _timed_out(self, seat: int) -> TurnTimedOut:

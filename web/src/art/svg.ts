@@ -168,16 +168,51 @@ export function grassSvg(cellIndex: number): string {
   return s + "</svg>";
 }
 
-/** 열린 숫자 칸: 흙바닥 위 고양이 발자국에 주변 고양이 수를 쓴다. */
+/** 열린 칸의 흙바닥(시안 4-A 고운 흙). 칸 번호를 시드로 흙알갱이 위치를 고정해 모든 화면에서 같게 보인다. */
+export function dirtSvg(cellIndex: number): string {
+  const rnd = rng(cellIndex * 7 + 1);
+  let s = '<svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#e3cc9c"/>';
+  for (let k = 0; k < 14; k++) {
+    const x = (rnd() * 40).toFixed(1);
+    const y = (rnd() * 40).toFixed(1);
+    const r = (0.5 + rnd() * 0.9).toFixed(2);
+    s += `<circle cx="${x}" cy="${y}" r="${r}" fill="${rnd() > 0.5 ? "#c9ac78" : "#f2e2bf"}"/>`;
+  }
+  return s + "</svg>";
+}
+
+function pawShapes(fill: string): string {
+  return (
+    `<ellipse cx="10" cy="15" rx="3.6" ry="4.6" fill="${fill}" transform="rotate(-20 10 15)"/>` +
+    `<ellipse cx="16.5" cy="9" rx="3.6" ry="4.8" fill="${fill}"/><ellipse cx="23.5" cy="9" rx="3.6" ry="4.8" fill="${fill}"/>` +
+    `<ellipse cx="30" cy="15" rx="3.6" ry="4.6" fill="${fill}" transform="rotate(20 30 15)"/>` +
+    `<path d="M20 18 C 28 18, 32 25, 30 30 C 28 35, 23 33, 20 33 C 17 33, 12 35, 10 30 C 8 25, 12 18, 20 18 Z" fill="${fill}"/>`
+  );
+}
+
+/**
+ * 열린 숫자 칸: 흙이 눌린 고양이 발자국에 주변 고양이 수를 쓴다(시안 4-A).
+ * 배경 없이 그려 dirtSvg 위에 겹친다. 밝은 테두리를 살짝 비껴 깔아 흙에 패인 것처럼 보이게 한다.
+ */
 export function pawSvg(n: number): string {
   if (!Number.isInteger(n) || n < 1 || n > 8) throw new Error(`발자국 숫자는 1~8 이어야 합니다: ${n}`);
-  const f = "#c9b28a";
   return (
     '<svg viewBox="0 0 40 40">' +
-    `<ellipse cx="10" cy="15" rx="3.6" ry="4.6" fill="${f}" transform="rotate(-20 10 15)"/>` +
-    `<ellipse cx="16.5" cy="9" rx="3.6" ry="4.8" fill="${f}"/><ellipse cx="23.5" cy="9" rx="3.6" ry="4.8" fill="${f}"/>` +
-    `<ellipse cx="30" cy="15" rx="3.6" ry="4.6" fill="${f}" transform="rotate(20 30 15)"/>` +
-    `<path d="M20 18 C 28 18, 32 25, 30 30 C 28 35, 23 33, 20 33 C 17 33, 12 35, 10 30 C 8 25, 12 18, 20 18 Z" fill="${f}"/>` +
+    `<g transform="translate(0.6 0.8)">${pawShapes("#f4e6c8")}</g>${pawShapes("#b38f5c")}` +
     `<text x="20" y="30.5" text-anchor="middle" font-size="13" font-weight="800" font-family="system-ui,sans-serif" fill="#3e2f1c">${n}</text></svg>`
+  );
+}
+
+/** 상대가 칸을 열 때 위에서 내려오는 앞발(시안 1-C). 털색은 상대 스킨, 젤리는 그 스킨의 귀 안쪽 색이다. */
+export function pawSwipeSvg(skin: number): string {
+  const coat = COATS[skinConfig(skin).coat];
+  const pad = coat.dark ? "#d9879b" : coat.inner;
+  return (
+    '<svg viewBox="0 0 34 46">' +
+    `<rect x="7" y="0" width="20" height="30" rx="9" fill="${coat.base}" stroke="${OUT}" stroke-width="1.2"/>` +
+    `<ellipse cx="17" cy="33" rx="13" ry="11" fill="${coat.base}" stroke="${OUT}" stroke-width="1.2"/>` +
+    `<ellipse cx="17" cy="36" rx="5.5" ry="4.5" fill="${pad}"/>` +
+    `<circle cx="9" cy="29" r="2.6" fill="${pad}"/><circle cx="14" cy="26" r="2.6" fill="${pad}"/>` +
+    `<circle cx="20" cy="26" r="2.6" fill="${pad}"/><circle cx="25" cy="29" r="2.6" fill="${pad}"/></svg>`
   );
 }

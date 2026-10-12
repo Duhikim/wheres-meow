@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { catSvg, grassSvg, pawSvg } from "./svg";
+import { catSvg, dirtSvg, grassSvg, pawSvg, pawSwipeSvg } from "./svg";
 import { ALLOWED_SKINS, DEFAULT_SKIN_1P, DEFAULT_SKIN_2P, SKINS } from "./skins";
 
 describe("skins", () => {
@@ -51,5 +51,28 @@ describe("pawSvg", () => {
   it("[실패] 1~8 이 아니면 오류를 던진다", () => {
     expect(() => pawSvg(0)).toThrow();
     expect(() => pawSvg(9)).toThrow();
+  });
+});
+
+describe("dirtSvg", () => {
+  it("[성공] 같은 칸 번호면 늘 같은 흙이고, 칸마다 흙알갱이 배치가 다르다", () => {
+    expect(dirtSvg(7)).toBe(dirtSvg(7));
+    expect(dirtSvg(7)).not.toBe(dirtSvg(8));
+    expect(dirtSvg(7)).toMatch(/^<svg viewBox="0 0 40 40">.*<\/svg>$/s);
+  });
+});
+
+describe("pawSvg (흙에 눌린 발자국)", () => {
+  it("[성공] 배경 없이 눌린 자국과 숫자만 그려 흙 위에 겹친다", () => {
+    const paw = pawSvg(3);
+    expect(paw).not.toContain("<rect");
+    expect(paw).toContain(">3</text>");
+  });
+});
+
+describe("pawSwipeSvg", () => {
+  it("[성공] 상대 고양이 털색으로 앞발을 그린다", () => {
+    expect(pawSwipeSvg(17)).toContain("#36323c"); // 까망이
+    expect(pawSwipeSvg(16)).toContain("#f6a45a"); // 치즈 태비
   });
 });

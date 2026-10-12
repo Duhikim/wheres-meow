@@ -4,25 +4,29 @@ import { CatArt } from "../art/Art";
 import { SKIN_ACCENT, skinConfig } from "../art/skins";
 import { Board } from "../components/Board";
 import { ResultCard } from "../components/ResultCard";
+import { SoundToggle } from "../components/SoundToggle";
 import { errorMessage } from "../errorMessages";
 import { computeCellSize } from "../game/cellSize";
 import { useGameStore } from "../game/gameStore";
 import { cancelLeaveResult, scheduleLeaveResult } from "../game/leaveResult";
-import { useSecondsLeft, useViewportWidth } from "../game/hooks";
+import { useViewportWidth } from "../game/hooks";
+import { useTurnTimer } from "../game/timer";
 import { cellKey, type GameState, type SeatIndex } from "../game/types";
 import { useSession } from "../session/sessionStore";
 import { getSocket } from "../socket/socket";
 
-const TURN_SECONDS = 20;
 const TOTAL_CATS = 25;
 
 const accentOf = (skin: number) => SKIN_ACCENT[skinConfig(skin).coat];
 
 function SeatCard({ game, seat, mine }: { game: GameState; seat: SeatIndex; mine: boolean }) {
   const { nickname, skin, score } = game.seats[seat];
-  const active = game.status === "IN_PROGRESS" && game.currentSeat === seat;
+  const playing = game.status === "IN_PROGRESS";
+  const active = playing && game.currentSeat === seat;
+  // 진행 중에는 차례인 쪽을 그 사람 색으로 채우고 다른 쪽을 흐리게 한다(시안 2-C)
+  const state = !playing ? "" : active ? " active" : " waiting";
   return (
-    <div className={`seat-card${active ? " active" : ""}${mine ? "" : " right"}`} style={{ ["--accent" as string]: accentOf(skin) }}>
+    <div className={`seat-card${state}${mine ? "" : " right"}`} style={{ ["--accent" as string]: accentOf(skin) }}>
       <CatArt skin={skin} pose="face" size={36} />
       <div className="seat-name">
         <b>{nickname}</b>
@@ -43,7 +47,7 @@ export function PlayPage() {
   const navigate = useNavigate();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [confirmForfeit, setConfirmForfeit] = useState(false);
-  const secondsLeft = useSecondsLeft(game?.turnDeadline ?? null);
+  const timer = useTurnTimer(game?.status === "IN_PROGRESS" ? game.turnDeadline : null);
   const cellSize = computeCellSize(useViewportWidth());
 
   const syncRequested = useRef<string | null>(null);
@@ -121,7 +125,13 @@ export function PlayPage() {
 
       <header className="scoreboard">
         <SeatCard game={game} seat={me} mine />
-        <span className="vs">VS</span>
+        {game.status === "IN_PROGRESS" ? (
+          <span className="turn-arrow" aria-hidden>
+            {game.currentSeat === me ? "◀" : "▶"}
+          </span>
+        ) : (
+          <span className="vs">VS</span>
+        )}
         <SeatCard game={game} seat={opponent} mine={false} />
       </header>
 
@@ -136,10 +146,11 @@ export function PlayPage() {
             <>
               <div className="turn-row">
                 <span className="turn-label">{myTurn ? "🐾 내 차례" : `${game.seats[opponent].nickname}의 차례`}</span>
-                <span className="turn-seconds">{secondsLeft ?? ""}초</span>
+                <span className={`turn-seconds${timer?.urgent ? " urgent" : ""}`}>{timer?.seconds ?? ""}초</span>
               </div>
-              <div className="timer-bar">
-                <i style={{ width: `${((secondsLeft ?? 0) / TURN_SECONDS) * 100}%` }} />
+              {/* 화면 주사율로 다시 그려 등속으로 줄어들고, 5초 남으면 빨갛게 깜빡인다(시안 3-B) */}
+              <div className={`timer-bar${timer?.urgent ? " urgent" : ""}`}>
+                <i style={{ width: `${(timer?.fraction ?? 0) * 100}%` }} />
               </div>
             </>
           )}
@@ -157,7 +168,15 @@ export function PlayPage() {
         onLeave={() => socket.emit("game:leave-result", { gameId: game.gameId })}
       />
 
-      <Board skins={skins} cells={game.cells} cellSize={cellSize} disabled={!myTurn} pendingKey={pendingKey} onReveal={reveal} />
+      <Board
+        skins={skins}
+        cells={game.cells}
+        cellSize={cellSize}
+        disabled={!myTurn}
+        pendingKey={pendingKey}
+        onReveal={reveal}
+        opponentMove={game.lastMove && game.lastMove.seat !== me ? game.lastMove : null}
+      />
 
       {lastError && <p className="error">{errorMessage(lastError)}</p>}
       {game.outOfSync && game.status === "IN_PROGRESS" && (
@@ -172,6 +191,7 @@ export function PlayPage() {
           <span>
             숨은 고양이 <b>{TOTAL_CATS - found}</b>마리
           </span>
+          <SoundToggle />
           {confirmForfeit ? (
             <span className="row">
               <button className="btn danger small" type="button" onClick={forfeit}>
