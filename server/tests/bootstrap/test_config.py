@@ -29,3 +29,24 @@ class TestAppConfig:
         def test_실패_알_수_없는_환경이면_거부한다(self):
             with pytest.raises(ValueError):
                 AppConfig(env="staging")
+
+        def test_실패_운영_환경이_gevent가_아니면_시작을_거부한다(self):
+            with pytest.raises(ValueError):
+                AppConfig(env="production", secret_key="real-secret", async_mode="threading")
+
+        def test_성공_운영_환경은_서명_키와_gevent로_시작한다(self):
+            config = AppConfig(env="production", secret_key="real-secret", async_mode="gevent")
+
+            assert config.env == "production"
+
+        def test_실패_정적_파일_폴더에_index_html이_없으면_거부한다(self, tmp_path):
+            with pytest.raises(ValueError):
+                AppConfig(static_dir=str(tmp_path))
+
+    class TestFromEnvStatic:
+        def test_성공_정적_파일_폴더를_읽는다(self, tmp_path):
+            (tmp_path / "index.html").write_text("ok")
+
+            config = AppConfig.from_env({"WHERESMEOW_STATIC_DIR": str(tmp_path)})
+
+            assert config.static_dir == str(tmp_path)

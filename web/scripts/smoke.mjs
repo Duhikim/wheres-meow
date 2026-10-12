@@ -1,7 +1,8 @@
-// Vite 프록시(5173)를 거쳐 게스트 두 명이 초대 방으로 대국을 시작하고 한 수 두는지 확인한다.
+// 게스트 두 명이 초대 방으로 대국을 시작하고 한 수 두는지 확인한다.
 import { io } from "socket.io-client";
 
-const BASE = "http://127.0.0.1:5173";
+// 접속 주소. 기본값은 Vite 개발 서버이며, 운영·컨테이너 확인 시 SMOKE_BASE 로 바꾼다.
+const BASE = process.env.SMOKE_BASE ?? "http://127.0.0.1:5173";
 const post = async (path, body, token) => {
   const res = await fetch(BASE + path, {
     method: "POST",

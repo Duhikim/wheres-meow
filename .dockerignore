@@ -1,0 +1,12 @@
+.git
+.claude
+.superpowers
+.local
+docs
+**/__pycache__
+**/*.egg-info
+server/.venv
+server/.pytest_cache
+server/tests
+web/node_modules
+web/dist
