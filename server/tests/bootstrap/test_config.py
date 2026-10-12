@@ -34,14 +34,33 @@ class TestAppConfig:
             with pytest.raises(ValueError):
                 AppConfig(env="production", secret_key="real-secret", async_mode="threading")
 
-        def test_성공_운영_환경은_서명_키와_gevent로_시작한다(self):
-            config = AppConfig(env="production", secret_key="real-secret", async_mode="gevent")
+        def test_성공_운영_환경은_서명_키와_gevent와_PostgreSQL_로_시작한다(self):
+            config = AppConfig(
+                env="production", secret_key="real-secret", async_mode="gevent", database_url="postgresql://u:p@h/db"
+            )
 
             assert config.env == "production"
 
         def test_실패_정적_파일_폴더에_index_html이_없으면_거부한다(self, tmp_path):
             with pytest.raises(ValueError):
                 AppConfig(static_dir=str(tmp_path))
+
+    class TestDatabaseUrl:
+        def test_성공_개발_환경_기본값은_SQLite_파일이다(self):
+            assert AppConfig.from_env({}).database_url.startswith("sqlite:///")
+
+        def test_성공_DATABASE_URL_을_읽는다(self):
+            config = AppConfig.from_env({"DATABASE_URL": "postgresql://u:p@h/db"})
+
+            assert config.database_url == "postgresql://u:p@h/db"
+
+        def test_실패_운영_환경에_PostgreSQL_주소가_없으면_시작을_거부한다(self):
+            with pytest.raises(ValueError):
+                AppConfig(env="production", secret_key="real-secret", async_mode="gevent")
+
+        def test_실패_운영_환경에서_SQLite_를_쓰면_시작을_거부한다(self):
+            with pytest.raises(ValueError):
+                AppConfig(env="production", secret_key="real-secret", async_mode="gevent", database_url="sqlite:///x.db")
 
     class TestFromEnvStatic:
         def test_성공_정적_파일_폴더를_읽는다(self, tmp_path):

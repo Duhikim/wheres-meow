@@ -1,5 +1,14 @@
 import { cellKey, type Cell, type CellPayload, type GameAction, type GameState } from "./types";
 
+function withUnfoundCats(cells: Record<string, Cell>, cats: [number, number][]): Record<string, Cell> {
+  const next = { ...cells };
+  for (const [x, y] of cats) {
+    const key = cellKey(x, y);
+    if (!next[key]) next[key] = { kind: "cat", seat: null };
+  }
+  return next;
+}
+
 function toCell(payload: CellPayload): Cell {
   return payload.kind === "cat" ? { kind: "cat", seat: payload.seat } : { kind: "number", n: payload.n };
 }
@@ -35,6 +44,25 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
       outOfSync: false,
     };
   }
+  if (action.type === "state") {
+    // 재동기화: 서버의 전체 상태로 통째로 바꾼다. 같은 대국이 아니어도(새로고침 직후) 그대로 받는다.
+    const p = action.payload;
+    const finished = p.status === "FINISHED";
+    const cells = withCells({}, p.cells);
+    return {
+      gameId: p.gameId,
+      mode: p.mode,
+      mySeat: p.mySeat,
+      seats: p.seats,
+      currentSeat: p.currentSeat,
+      turnDeadline: finished ? null : p.turnDeadline,
+      version: p.version,
+      cells: finished && p.cats ? withUnfoundCats(cells, p.cats) : cells,
+      status: p.status,
+      result: p.result,
+      outOfSync: false,
+    };
+  }
   if (!state || action.payload.gameId !== state.gameId) return state;
   // 종료 이벤트는 점수·승자·고양이 전체를 담은 최종 상태라서, 앞 이벤트를 놓쳤어도 적용한다
   if (action.type !== "ended" && action.payload.version !== state.version + 1) {
@@ -65,14 +93,9 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
     }
     case "ended": {
       const p = action.payload;
-      const cells = { ...state.cells };
-      for (const [x, y] of p.cats) {
-        const key = cellKey(x, y);
-        if (!cells[key]) cells[key] = { kind: "cat", seat: null };
-      }
       return {
         ...state,
-        cells,
+        cells: withUnfoundCats(state.cells, p.cats),
         seats: withScores(state, p.scores),
         turnDeadline: null,
         version: p.version,

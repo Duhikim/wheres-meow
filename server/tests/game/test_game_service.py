@@ -2,7 +2,7 @@ import threading
 
 import pytest
 
-from fakes import FakeClock, FakeGameEventPublisher, FakeTurnTimer
+from fakes import FakeClock, FakeGameEventPublisher, FakeGameResultRecorder, FakeTurnTimer
 from wheresmeow.game.adapter.outbound.memory.in_memory_game_store import InMemoryGameStore
 from wheresmeow.game.application.port.inbound import GamePlayer
 from wheresmeow.game.application.service.game_service import GameService
@@ -23,15 +23,18 @@ def env():
     store = InMemoryGameStore()
     publisher = FakeGameEventPublisher()
     timer = FakeTurnTimer()
+    recorder = FakeGameResultRecorder()
     service = GameService(
         store,
         publisher,
         timer,
         FixedMineLayoutGenerator(CATS),
         clock,
+        recorder=recorder,
         first_seat_chooser=lambda: 0,
         id_factory=lambda: "g1",
     )
+    service.recorder = recorder  # 테스트에서 꺼내 쓰기 위한 참조
     return service, store, publisher, timer, clock
 
 
@@ -161,3 +164,50 @@ class TestGameService:
 
             with pytest.raises(NotAParticipant):
                 service.get_game("g1", "stranger")
+
+
+class TestGameServiceRecording:
+    class TestRecord:
+        def test_성공_대국이_끝나면_결과를_한_번_기록한다(self, env):
+            service, *_ = env
+            service.start_game(GameMode.INVITE, HOST, GUEST)
+            service.reveal("g1", "host", 0, 0)
+
+            service.forfeit("g1", "guest")
+
+            assert service.recorder.recorded == ["g1"]
+
+        def test_성공_진행_중에는_기록하지_않는다(self, env):
+            service, *_ = env
+            service.start_game(GameMode.INVITE, HOST, GUEST)
+
+            service.reveal("g1", "host", 0, 0)
+
+            assert service.recorder.recorded == []
+
+        def test_성공_기록이_실패해도_종료_알림은_보내고_로그를_남긴다(self, env, caplog):
+            service, _, publisher, _, _ = env
+            service.start_game(GameMode.INVITE, HOST, GUEST)
+            service.recorder.fail_with = RuntimeError("db down")
+
+            service.forfeit("g1", "guest")
+
+            assert isinstance(publisher.published[-1][1][-1], GameEnded)
+            assert "대국 결과 저장 실패" in caplog.text
+            assert "g1" in caplog.text
+
+
+class TestGameServiceCurrentGame:
+    class TestFindCurrentGame:
+        def test_성공_진행_중인_대국을_찾는다(self, env):
+            service, *_ = env
+            service.start_game(GameMode.INVITE, HOST, GUEST)
+
+            assert service.find_current_game("guest").id == "g1"
+
+        def test_성공_끝난_대국은_찾지_않는다(self, env):
+            service, *_ = env
+            service.start_game(GameMode.INVITE, HOST, GUEST)
+            service.forfeit("g1", "host")
+
+            assert service.find_current_game("host") is None

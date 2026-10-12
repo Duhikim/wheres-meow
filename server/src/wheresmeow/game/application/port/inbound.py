@@ -30,3 +30,7 @@ class ForfeitUseCase(Protocol):
 
 class GetGameUseCase(Protocol):
     def get_game(self, game_id: str, player_id: str) -> Game: ...
+
+
+class FindCurrentGameUseCase(Protocol):
+    def find_current_game(self, player_id: str) -> Game | None: ...

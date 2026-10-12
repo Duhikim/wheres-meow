@@ -14,13 +14,14 @@ afterEach(() => {
 });
 
 describe("verifySession", () => {
-  it("[성공] 서버가 토큰을 받아 주면 세션을 유지한다", async () => {
+  it("[성공] 서버가 토큰을 받아 주면 새로 받은 토큰과 내 정보로 갱신한다", async () => {
     useSession.getState().setSession("token", player);
-    mockFetch(200, player);
+    mockFetch(200, { ...player, skin1p: 9, token: "renewed" });
 
     await verifySession();
 
-    expect(useSession.getState().token).toBe("token");
+    expect(useSession.getState().token).toBe("renewed");
+    expect(useSession.getState().player?.skin1p).toBe(9);
   });
 
   it("[성공] 서버 재시작 등으로 토큰이 거부되면(401) 세션을 지운다", async () => {

@@ -1,8 +1,11 @@
-import { defineRailway, github, preserve, project, service } from "railway/iac";
+import { defineRailway, github, postgres, preserve, project, ref, service } from "railway/iac";
 
 // Where's Meow 운영 구성. railway.toml(Config as Code, 2026-12-01 폐기 예정)을 대체한다.
 // 환경 변수는 값을 코드에 두지 않고 preserve() 로 Railway 에 이미 있는 값을 유지한다.
 export default defineRailway(() => {
+  // 게스트·대국 기록·전적·레이팅을 저장한다(2단계부터). 웹 서비스는 내부망 주소(DATABASE_URL)로 붙는다.
+  const db = postgres("Postgres");
+
   const web = service("web", {
     source: github("Duhikim/wheres-meow", { branch: "main" }),
     build: {
@@ -22,10 +25,11 @@ export default defineRailway(() => {
       WHERESMEOW_ASYNC_MODE: preserve(),
       WHERESMEOW_ENV: preserve(),
       WHERESMEOW_SECRET_KEY: preserve(),
+      DATABASE_URL: ref(db, "DATABASE_URL"),
     },
   });
 
   return project("wheres-meow", {
-    resources: [web],
+    resources: [db, web],
   });
 });

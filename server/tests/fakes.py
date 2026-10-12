@@ -38,3 +38,14 @@ class FakeTurnTimer:
     def fire_latest(self) -> None:
         game_id, turn_seq, _, on_expire = self.scheduled[-1]
         on_expire(game_id, turn_seq)
+
+
+class FakeGameResultRecorder:
+    def __init__(self) -> None:
+        self.recorded: list = []
+        self.fail_with: Exception | None = None
+
+    def record(self, game) -> None:
+        if self.fail_with:
+            raise self.fail_with
+        self.recorded.append(game.id)

@@ -26,3 +26,7 @@ class GetPlayerUseCase(Protocol):
 
 class ChangeSkinsUseCase(Protocol):
     def change_skins(self, player_id: str, skin_1p: int, skin_2p: int) -> Player: ...
+
+
+class IssueTokenUseCase(Protocol):
+    def issue_token(self, player_id: str) -> str: ...

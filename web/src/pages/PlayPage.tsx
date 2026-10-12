@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CatArt } from "../art/Art";
 import { SKIN_ACCENT, skinConfig } from "../art/skins";
@@ -48,17 +48,32 @@ export function PlayPage() {
   const secondsLeft = useSecondsLeft(game?.turnDeadline ?? null);
   const cellSize = computeCellSize(useViewportWidth());
 
+  const syncRequested = useRef<string | null>(null);
+
   // 새 이벤트가 오거나 오류가 오면 대기 중 표시를 푼다
   useEffect(() => setPendingKey(null), [game?.version, lastError]);
 
+  // 새로고침으로 들어왔거나(대국 정보 없음) 이벤트를 놓쳐 어긋났으면 서버에 전체 상태를 요청한다
+  const needsSync = !game || game.gameId !== gameId || game.outOfSync;
+  useEffect(() => {
+    if (!token || !gameId || !needsSync) return;
+    const key = `${gameId}:${game?.version ?? "none"}`;
+    if (syncRequested.current === key) return;
+    syncRequested.current = key;
+    getSocket(token).emit("game:sync", { gameId });
+  }, [token, gameId, needsSync, game?.version]);
+
   if (!token || !game || game.gameId !== gameId) {
+    const failed = lastError === "GAME_NOT_FOUND" || lastError === "NOT_A_PARTICIPANT" || !token;
     return (
       <main className="page center">
         <CatArt skin={19} size={96} />
-        <p>대국 정보를 불러올 수 없습니다.</p>
-        <Link className="btn primary" to="/">
-          로비로
-        </Link>
+        <p>{failed ? "대국 정보를 불러올 수 없습니다. 이미 끝났거나 서버가 다시 시작되었습니다." : "대국을 불러오는 중…"}</p>
+        {failed && (
+          <Link className="btn primary" to="/">
+            로비로
+          </Link>
+        )}
       </main>
     );
   }

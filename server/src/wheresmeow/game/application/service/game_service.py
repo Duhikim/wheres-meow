@@ -1,15 +1,18 @@
+import logging
 import secrets
 import threading
 import uuid
 from collections.abc import Callable, Sequence
 
 from wheresmeow.game.application.port.inbound import GamePlayer
-from wheresmeow.game.application.port.outbound import GameEventPublisher, GameStore, TurnTimer
+from wheresmeow.game.application.port.outbound import GameEventPublisher, GameResultRecorder, GameStore, TurnTimer
 from wheresmeow.game.domain.board import BOARD_SIZE, CAT_COUNT, Board, MineLayoutGenerator
 from wheresmeow.game.domain.errors import AlreadyInGame, GameNotFound
 from wheresmeow.game.domain.game import Game, GameEvent, GameMode, GameStatus, Seat
 from wheresmeow.game.domain.skins import assign_skins
 from wheresmeow.shared.clock import Clock
+
+logger = logging.getLogger(__name__)
 
 
 class GameService:
@@ -27,6 +30,8 @@ class GameService:
         timer: TurnTimer,
         layout_generator: MineLayoutGenerator,
         clock: Clock,
+        *,
+        recorder: GameResultRecorder,
         first_seat_chooser: Callable[[], int] = lambda: secrets.randbelow(2),
         id_factory: Callable[[], str] = lambda: uuid.uuid4().hex,
     ) -> None:
@@ -35,6 +40,7 @@ class GameService:
         self._timer = timer
         self._layout_generator = layout_generator
         self._clock = clock
+        self._recorder = recorder
         self._first_seat_chooser = first_seat_chooser
         self._id_factory = id_factory
         self._locks: dict[str, threading.Lock] = {}
@@ -69,6 +75,10 @@ class GameService:
             return
         self._act(game_id, lambda game: game.timeout(turn_seq, self._clock.now_ms()))
 
+    def find_current_game(self, player_id: str) -> Game | None:
+        """재접속용. 이 플레이어의 진행 중인 대국(없으면 None)."""
+        return self._store.find_active_by_player(player_id)
+
     def get_game(self, game_id: str, player_id: str) -> Game:
         game = self._require(game_id)
         game.seat_of(player_id)  # 참가자가 아니면 NotAParticipant
@@ -81,12 +91,25 @@ class GameService:
             if not events:
                 return
             self._store.save(game)
+            if game.status is GameStatus.FINISHED:
+                self._record(game)  # 종료 알림보다 먼저 저장한다(스펙 8절)
             self._publisher.publish(game, events)
             if game.status is GameStatus.IN_PROGRESS:
                 self._schedule_turn(game)
         if game.status is GameStatus.FINISHED:
             with self._locks_guard:
                 self._locks.pop(game_id, None)
+
+    def _record(self, game: Game) -> None:
+        try:
+            self._recorder.record(game)
+        except Exception:
+            # 저장에 실패해도 대국 종료는 알려야 한다. 결과 전체를 남겨 수동으로 복구할 수 있게 한다.
+            logger.exception(
+                "대국 결과 저장 실패 game_id=%s mode=%s seats=%s scores=%s winner=%s reason=%s cats=%s moves=%s",
+                game.id, game.mode, [(s.player_id, s.nickname, s.skin) for s in game.seats], game.scores,
+                game.winner, game.end_reason, sorted(game.board.cats), game.moves,
+            )
 
     def _schedule_turn(self, game: Game) -> None:
         assert game.turn_deadline_ms is not None

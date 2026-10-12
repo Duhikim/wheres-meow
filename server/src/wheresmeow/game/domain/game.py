@@ -90,6 +90,7 @@ class Game:
     seats: tuple[Seat, Seat]
     first_seat: int
     started_at_ms: int
+    bot_difficulty: str | None = None  # 컴퓨터 대전이면 EASY·NORMAL·HARD
     status: GameStatus = GameStatus.IN_PROGRESS
     version: int = 0
     turn_seq: int = 0

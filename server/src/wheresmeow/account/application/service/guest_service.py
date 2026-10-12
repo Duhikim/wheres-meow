@@ -41,6 +41,10 @@ class GuestService:
             raise PlayerNotFound(f"플레이어를 찾을 수 없습니다: {player_id}")
         return player
 
+    def issue_token(self, player_id: str) -> str:
+        """새 토큰을 발급한다. 조회할 때마다 다시 받아 만료일을 30일 뒤로 미룬다(스펙 4.4)."""
+        return self._tokens.issue(self.get_player(player_id).id)
+
     def change_skins(self, player_id: str, skin_1p: int, skin_2p: int) -> Player:
         player = self.get_player(player_id)
         player.change_skins(skin_1p, skin_2p)

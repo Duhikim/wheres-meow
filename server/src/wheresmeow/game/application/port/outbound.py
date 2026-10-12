@@ -30,3 +30,9 @@ class TurnTimer(Protocol):
     ) -> None:
         """deadline_ms 가 지나면 on_expire(game_id, turn_seq) 를 호출한다."""
         ...
+
+
+class GameResultRecorder(Protocol):
+    def record(self, game: Game) -> None:
+        """끝난 대국을 영구 저장한다. 실패하면 예외를 던진다(호출 측이 로그를 남긴다)."""
+        ...

@@ -10,6 +10,9 @@ from fakes import FakeClock, FakeTurnTimer
 from wheresmeow.bootstrap.app_factory import create_app
 from wheresmeow.bootstrap.config import AppConfig
 from wheresmeow.game.domain.board import FixedMineLayoutGenerator
+from wheresmeow.shared.persistence.database import Database
+
+from persistence_support import migrated_database
 
 # 아래쪽 두 줄(y=10,11) 24마리 + (11,9) = 25마리. (0,0) 은 빈 칸이라 연쇄로 열린다.
 INTEGRATION_CATS = {(x, y) for y in (10, 11) for x in range(12)} | {(11, 9)}
@@ -22,19 +25,23 @@ class AppEnv:
     http: FlaskClient
     clock: FakeClock
     timer: FakeTurnTimer
+    database: Database
 
 
-def build_app_env() -> AppEnv:
+def build_app_env(database: Database | None = None) -> AppEnv:
+    """database 를 넘기면 같은 DB 를 쓰는 새 앱을 만든다(서버 재시작 흉내)."""
+    database = database or migrated_database()
     clock = FakeClock(now_ms=0)
     timer = FakeTurnTimer()
     app, socketio = create_app(
-        AppConfig(env="test", secret_key="test-secret"),
+        AppConfig(env="test", secret_key="test-secret", database_url="sqlite://"),
+        database=database,
         clock=clock,
         turn_timer=timer,
         layout_generator=FixedMineLayoutGenerator(INTEGRATION_CATS),
         first_seat_chooser=lambda: 0,
     )
-    return AppEnv(app, socketio, app.test_client(), clock, timer)
+    return AppEnv(app, socketio, app.test_client(), clock, timer, database)
 
 
 def create_guest(env: AppEnv, nickname: str) -> tuple[str, str]:

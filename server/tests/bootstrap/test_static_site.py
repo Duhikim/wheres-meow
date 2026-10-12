@@ -14,7 +14,7 @@ def static_dir(tmp_path):
 
 @pytest.fixture
 def http(static_dir):
-    app, _ = create_app(AppConfig(env="test", secret_key="s", static_dir=str(static_dir)))
+    app, _ = create_app(AppConfig(env="test", secret_key="s", static_dir=str(static_dir), database_url="sqlite://"))
     return app.test_client()
 
 
@@ -56,7 +56,7 @@ class TestStaticSite:
 class TestHealth:
     class TestGet:
         def test_성공_정적_파일_설정과_무관하게_상태_확인에_응답한다(self):
-            app, _ = create_app(AppConfig(env="test", secret_key="s"))
+            app, _ = create_app(AppConfig(env="test", secret_key="s", database_url="sqlite://"))
 
             response = app.test_client().get("/api/health")
 

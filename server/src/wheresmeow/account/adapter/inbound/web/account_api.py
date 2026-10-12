@@ -4,7 +4,7 @@ from typing import Any
 from flask import Blueprint, jsonify, request
 from pydantic import BaseModel, ConfigDict, StrictInt
 
-from wheresmeow.account.application.port.inbound import ChangeSkinsUseCase, CreateGuestUseCase
+from wheresmeow.account.application.port.inbound import ChangeSkinsUseCase, CreateGuestUseCase, IssueTokenUseCase
 from wheresmeow.account.domain.player import Player
 from wheresmeow.shared.payload import parse_payload
 
@@ -33,6 +33,7 @@ def player_payload(player: Player) -> dict[str, Any]:
 def create_account_blueprint(
     create_guest: CreateGuestUseCase,
     change_skins: ChangeSkinsUseCase,
+    issue_token: IssueTokenUseCase,
     current_player: Callable[[], Player],
 ) -> Blueprint:
     blueprint = Blueprint("account", __name__, url_prefix="/api")
@@ -45,7 +46,8 @@ def create_account_blueprint(
 
     @blueprint.get("/players/me")
     def get_me():
-        return jsonify(player_payload(current_player()))
+        me = current_player()
+        return jsonify({**player_payload(me), "token": issue_token.issue_token(me.id)})
 
     @blueprint.put("/players/me/skins")
     def put_my_skins():

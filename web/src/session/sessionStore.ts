@@ -53,7 +53,9 @@ export async function verifySession(): Promise<void> {
   const { token, clear } = useSession.getState();
   if (!token) return;
   try {
-    await api<Player>("/api/players/me", { token });
+    // 서버는 조회할 때마다 새 토큰을 준다. 저장해 두면 쓰는 동안 만료일이 계속 30일 뒤로 밀린다.
+    const { token: renewed, ...player } = await api<Player & { token: string }>("/api/players/me", { token });
+    useSession.getState().setSession(renewed, player);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) clear();
     else throw error;

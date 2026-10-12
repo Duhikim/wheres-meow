@@ -134,4 +134,47 @@ describe("gameReducer", () => {
       expect(state.turnDeadline).toBeNull();
     });
   });
+
+  describe("state (재동기화)", () => {
+    it("[성공] 전체 상태로 화면 상태를 통째로 바꾸고 어긋남 표시를 지운다", () => {
+      const outOfSync = { ...start(), outOfSync: true };
+
+      const state = gameReducer(outOfSync, {
+        type: "state",
+        payload: {
+          ...started,
+          version: 7,
+          currentSeat: 1,
+          cells: [{ x: 2, y: 2, kind: "number", n: 1 }],
+          status: "IN_PROGRESS",
+          result: null,
+          timeouts: [0, 1],
+        },
+      })!;
+
+      expect(state.version).toBe(7);
+      expect(state.outOfSync).toBe(false);
+      expect(state.cells["2,2"]).toEqual({ kind: "number", n: 1 });
+    });
+
+    it("[성공] 끝난 대국이면 결과와 못 찾은 고양이까지 표시한다", () => {
+      const state = gameReducer(null, {
+        type: "state",
+        payload: {
+          ...started,
+          version: 3,
+          cells: [{ x: 1, y: 1, kind: "cat", seat: 0 }],
+          status: "FINISHED",
+          result: { reason: "FORFEIT", winner: 0 },
+          timeouts: [0, 0],
+          cats: [[1, 1], [5, 5]],
+        },
+      })!;
+
+      expect(state.status).toBe("FINISHED");
+      expect(state.result).toEqual({ reason: "FORFEIT", winner: 0 });
+      expect(state.cells["5,5"]).toEqual({ kind: "cat", seat: null });
+      expect(state.turnDeadline).toBeNull();
+    });
+  });
 });

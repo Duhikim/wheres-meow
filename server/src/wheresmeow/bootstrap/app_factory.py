@@ -7,6 +7,7 @@ from wheresmeow.bootstrap.container import Container, build_container
 from wheresmeow.bootstrap.error_handlers import register_http_error_handlers, register_socket_error_handler
 from wheresmeow.bootstrap.static_site import register_static_site
 from wheresmeow.game.adapter.inbound.socket.game_socket_handlers import register_game_socket_handlers
+from wheresmeow.game.adapter.inbound.web.game_api import create_game_blueprint
 from wheresmeow.room.adapter.inbound.socket.room_socket_handlers import register_room_socket_handlers
 from wheresmeow.room.adapter.inbound.web.room_api import create_room_blueprint
 from wheresmeow.shared.errors import DomainError
@@ -29,18 +30,21 @@ def create_app(config: AppConfig | None = None, **overrides) -> tuple[Flask, Soc
 
     identity = container.http_identity
     app.register_blueprint(
-        create_account_blueprint(container.guest_service, container.guest_service, identity.current_player)
+        create_account_blueprint(
+            container.guest_service, container.guest_service, container.guest_service, identity.current_player
+        )
     )
     app.register_blueprint(
         create_room_blueprint(container.room_service, container.room_service, identity.current_player_id)
     )
+    app.register_blueprint(create_game_blueprint(container.game_service, identity.current_player_id))
 
     sessions = container.socket_sessions
     register_room_socket_handlers(
         socketio, container.room_service, container.room_service, sessions.current_player_id
     )
     register_game_socket_handlers(
-        socketio, container.game_service, container.game_service, sessions.current_player_id
+        socketio, container.game_service, container.game_service, container.game_service, sessions.current_player_id
     )
 
     @app.get("/api/health")

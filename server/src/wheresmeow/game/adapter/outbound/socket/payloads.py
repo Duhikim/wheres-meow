@@ -5,7 +5,15 @@
 
 from typing import Any
 
-from wheresmeow.game.domain.game import CellsRevealed, Game, GameEnded, GameEvent, OpenedCell, TurnTimedOut
+from wheresmeow.game.domain.game import (
+    CellsRevealed,
+    Game,
+    GameEnded,
+    GameEvent,
+    GameStatus,
+    OpenedCell,
+    TurnTimedOut,
+)
 
 
 def cell_payload(cell: OpenedCell) -> dict[str, Any]:
@@ -25,6 +33,20 @@ def started_payload(game: Game, my_seat: int) -> dict[str, Any]:
         "version": game.version,
         "cells": [cell_payload(c) for c in game.opened.values()],
     }
+
+
+def snapshot_payload(game: Game, my_seat: int) -> dict[str, Any]:
+    """game:sync 응답(game:state). 끝난 대국일 때만 결과와 고양이 위치를 넣는다."""
+    payload = started_payload(game, my_seat)
+    payload["status"] = game.status.value
+    payload["timeouts"] = [seat.consecutive_timeouts for seat in game.seats]
+    if game.status is GameStatus.FINISHED:
+        assert game.end_reason is not None
+        payload["result"] = {"reason": game.end_reason.value, "winner": game.winner}
+        payload["cats"] = [[x, y] for x, y in sorted(game.board.cats)]
+    else:
+        payload["result"] = None
+    return payload
 
 
 def event_payload(game_id: str, event: GameEvent) -> tuple[str, dict[str, Any]]:

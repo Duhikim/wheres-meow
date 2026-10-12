@@ -53,6 +53,14 @@ export interface EndedPayload {
   version: number;
 }
 
+/** game:sync 응답. 끝난 대국이면 result 와 cats 가 있다. */
+export interface StatePayload extends StartedPayload {
+  status: "IN_PROGRESS" | "FINISHED";
+  result: { reason: EndReason; winner: SeatIndex | null } | null;
+  timeouts: [number, number];
+  cats?: [number, number][];
+}
+
 // 화면 상태
 
 export type Cell =
@@ -75,6 +83,7 @@ export interface GameState {
 
 export type GameAction =
   | { type: "started"; payload: StartedPayload }
+  | { type: "state"; payload: StatePayload }
   | { type: "revealed"; payload: RevealedPayload }
   | { type: "timeout"; payload: TimeoutPayload }
   | { type: "ended"; payload: EndedPayload };
