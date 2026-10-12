@@ -1,6 +1,31 @@
-import { describe, expect, it } from "vitest";
-import { gameIdToEnter } from "./hooks";
+import { renderHook } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { gameIdToEnter, useSecondsLeft } from "./hooks";
 import type { GameState } from "./types";
+
+afterEach(() => vi.useRealTimers());
+
+describe("useSecondsLeft", () => {
+  it("[성공] 숨겨진 탭에서 타이머가 멈춰 있다가 마감 시각이 바뀌어도 지금 시각 기준으로 계산한다", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const { result, rerender } = renderHook(({ deadline }) => useSecondsLeft(deadline), {
+      initialProps: { deadline: 20_000 },
+    });
+
+    // 탭이 숨겨져 간격 타이머가 돌지 않은 채 30초가 흐른 뒤 새 턴(마감 = 지금 + 20초)이 왔다
+    vi.setSystemTime(30_000);
+    rerender({ deadline: 50_000 });
+
+    expect(result.current).toBe(20);
+  });
+
+  it("[성공] 마감이 없으면 null 이다", () => {
+    const { result } = renderHook(() => useSecondsLeft(null));
+
+    expect(result.current).toBeNull();
+  });
+});
 
 const base: GameState = {
   gameId: "g1",
