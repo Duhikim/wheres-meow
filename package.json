@@ -1,0 +1,12 @@
+{
+  "name": "wheresmeow-infra",
+  "private": true,
+  "description": "Railway 인프라 정의(.railway/railway.ts)용 개발 의존성. 앱 코드는 server/ 와 web/ 에 있다.",
+  "scripts": {
+    "railway:plan": "railway config plan",
+    "railway:apply": "railway config apply"
+  },
+  "devDependencies": {
+    "railway": "3.13.1"
+  }
+}
