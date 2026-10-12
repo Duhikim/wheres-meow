@@ -8,7 +8,11 @@ test("가입하면 새로고침해도 로그인이 유지되고, 로그아웃 �
 
   await page.goto("/signup");
   await page.getByLabel(/아이디/).fill(username);
-  await page.getByLabel(/비밀번호/).fill("password123");
+  await page.getByLabel(/^비밀번호 \(/).fill("password123");
+  await page.getByLabel("비밀번호 확인").fill("password12");
+  await page.getByRole("button", { name: "가입하기" }).click();
+  await expect(page.locator(".error").first()).toHaveText("비밀번호가 서로 다릅니다.");
+  await page.getByLabel("비밀번호 확인").fill("password123");
   await page.getByLabel(/닉네임/).fill(`회원${tag}`);
   await page.getByRole("button", { name: "가입하기" }).click();
   await expect(page.locator(".who")).toContainText(`회원${tag}`);

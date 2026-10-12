@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSession } from "../session/sessionStore";
 import { AuthCallbackPage } from "./AuthCallbackPage";
 import { LoginPage } from "./LoginPage";
+import { SignupPage } from "./SignupPage";
 
 vi.mock("../socket/socket", () => ({ getSocket: () => ({ emit: vi.fn() }), resetSocket: vi.fn() }));
 
@@ -21,6 +22,7 @@ function renderAt(path: string) {
       <Routes>
         <Route path="/" element={<p>로비 화면</p>} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/me/nickname" element={<p>닉네임 설정 화면</p>} />
       </Routes>
@@ -72,5 +74,59 @@ describe("AuthCallbackPage", () => {
     renderAt("/auth/callback?new=0");
 
     await waitFor(() => expect(screen.getByText(/로그인에 실패했습니다/)).toBeTruthy());
+  });
+});
+
+describe("SignupPage", () => {
+  function fill(password: string, confirm: string) {
+    fireEvent.change(screen.getByLabelText(/^아이디/), { target: { value: "neko_01" } });
+    fireEvent.change(screen.getByLabelText(/^비밀번호 \(/), { target: { value: password } });
+    fireEvent.change(screen.getByLabelText("비밀번호 확인"), { target: { value: confirm } });
+    fireEvent.change(screen.getByLabelText(/^닉네임/), { target: { value: "고양이집사" } });
+  }
+
+  it("[성공] 비밀번호와 확인이 같으면 가입하고 로비로 간다", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ token: "t", player: { ...member, needsNickname: false } }), { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderAt("/signup");
+
+    fill("password1", "password1");
+    fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+
+    await waitFor(() => expect(screen.getByText("로비 화면")).toBeTruthy());
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ username: "neko_01", password: "password1", nickname: "고양이집사" });
+  });
+
+  it("[실패] 비밀번호와 확인이 다르면 바로 알려 주고 가입 요청을 보내지 않는다", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    renderAt("/signup");
+
+    fill("password1", "password2");
+    expect(screen.getByText("비밀번호가 서로 다릅니다.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getAllByText("비밀번호가 서로 다릅니다.").length).toBeGreaterThan(0);
+  });
+
+  it("[성공] 확인 칸이 비어 있으면 아직 불일치 문구를 띄우지 않는다", () => {
+    renderAt("/signup");
+
+    fill("password1", "");
+
+    expect(screen.queryByText("비밀번호가 서로 다릅니다.")).toBeNull();
+  });
+
+  it("[성공] 불일치로 막힌 뒤 확인 칸을 바르게 고치면 오류 문구가 사라진다", () => {
+    vi.stubGlobal("fetch", vi.fn());
+    renderAt("/signup");
+    fill("password1", "password2");
+    fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+
+    fireEvent.change(screen.getByLabelText("비밀번호 확인"), { target: { value: "password1" } });
+
+    expect(screen.queryByText("비밀번호가 서로 다릅니다.")).toBeNull();
   });
 });

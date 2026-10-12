@@ -5,16 +5,28 @@ import { errorMessage } from "../errorMessages";
 import { signup } from "../session/sessionStore";
 import { resetSocket } from "../socket/socket";
 
+const MISMATCH = "비밀번호가 서로 다릅니다.";
+
 export function SignupPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const mismatch = passwordConfirm !== "" && passwordConfirm !== password;
+  // 불일치로 막힌 뒤 바르게 고쳤으면 그 오류는 더 보이지 않는다
+  const shownError = error === MISMATCH && passwordConfirm === password ? null : error;
+
   async function submit(event: FormEvent) {
     event.preventDefault();
+    // 확인은 입력 실수를 막는 화면의 일이다. 서버에는 비밀번호 하나만 보낸다.
+    if (passwordConfirm !== password) {
+      setError(MISMATCH);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -44,12 +56,22 @@ export function SignupPage() {
           autoComplete="new-password"
           onChange={(e) => setPassword(e.target.value)}
         />
+        <label htmlFor="su-password-confirm">비밀번호 확인</label>
+        <input
+          id="su-password-confirm"
+          type="password"
+          value={passwordConfirm}
+          autoComplete="new-password"
+          aria-invalid={mismatch}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
+        />
+        {mismatch && error !== MISMATCH && <p className="error small">{MISMATCH}</p>}
         <label htmlFor="su-nickname">닉네임 (2~12자, 회원끼리 겹칠 수 없음)</label>
         <input id="su-nickname" value={nickname} maxLength={12} onChange={(e) => setNickname(e.target.value)} />
         <button className="btn primary block" type="submit" disabled={submitting}>
           가입하기
         </button>
-        {error && <p className="error">{error}</p>}
+        {shownError && <p className="error">{shownError}</p>}
       </form>
     </main>
   );
