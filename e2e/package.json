@@ -1,0 +1,12 @@
+{
+  "name": "wheresmeow-e2e",
+  "private": true,
+  "description": "브라우저 두 개로 실제 서버를 상대하는 종단 간 테스트(스펙 9.4).",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0"
+  }
+}

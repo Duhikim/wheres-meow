@@ -1,7 +1,7 @@
 # Where's Meow 설계 스펙
 
 - 작성일: 2026-10-12
-- 상태: 사용자 검토 대기
+- 상태: 승인됨, 8단계 모두 구현 완료(2026-10-12). 구현하며 달라진 점은 13절에 모았다.
 - 시안: [`2026-10-12-wheres-meow-mockups/`](2026-10-12-wheres-meow-mockups/) (스킨·잔디, 모바일 화면 배치와 흐름)
 
 ## 1. 개요
@@ -68,10 +68,10 @@
 
 ### 3.1 전체 구성
 
-- **서버**: Flask + Flask-SocketIO, gevent 워커 **1개**(`gunicorn -w 1 -k geventwebsocket...`). 진행 중 상태가 메모리에 있으므로 프로세스를 늘리지 않는다.
+- **서버**: Flask + Flask-SocketIO, gevent 프로세스 **1개**(`python -m wheresmeow.serve`, 13절). 진행 중 상태가 메모리에 있으므로 프로세스를 늘리지 않는다.
 - **DB**: PostgreSQL. SQLAlchemy 2.0, 마이그레이션은 Alembic. 모델은 SQLAlchemy 범용 타입만 사용한다(통합 테스트에서 SQLite를 쓰기 위함).
 - **클라이언트**: React + Vite + TypeScript, react-router, socket.io-client, Zustand.
-- **배포 기준선**: Docker 이미지와 docker compose(app, postgres, nginx). nginx는 정적 파일 제공과 WebSocket 프록시를 맡는다. 실제 호스팅 업체는 배포 단계에서 고른다.
+- **배포 기준선**: Docker 이미지와 docker compose(app, postgres). 앱(Flask)이 빌드된 화면·API·Socket.IO를 함께 제공하므로 nginx는 두지 않는다(13절). 호스팅은 Railway(GitHub `main` 푸시 시 자동 배포).
 - 게임 판정은 전부 서버가 한다(server-authoritative).
 
 ### 3.2 헥사고널 패키지 구조
@@ -355,4 +355,15 @@ web/
 5. **회원 계정**: 자체 가입·로그인, 토큰 rotation, Google·Naver·Kakao.
 6. **레이팅·매칭·랭킹**: Elo, 단일 대기열, 랭킹, 프로필.
 7. **재대결**.
-8. **배포 준비**: Dockerfile, docker compose, nginx 설정, Playwright E2E.
+8. **배포 준비**: Dockerfile, docker compose, Playwright E2E.
+
+## 13. 구현하며 달라진 점
+
+- **nginx 제외**: 운영 이미지에서 Flask가 정적 파일까지 제공하고 Railway가 TLS와 WebSocket을 처리하므로 nginx가 맡을 일이 없다. `compose.yaml`은 app과 postgres만 띄운다.
+- **서버 실행**: gunicorn 대신 `python -m wheresmeow.serve`(gevent, Flask-SocketIO 내장 서버, 프로세스 1개)로 실행한다.
+- **내 레이팅 조회**: `GET /api/players/me`에는 레이팅을 넣지 않고, 화면은 `GET /api/players/{내 id}`(프로필)에서 레이팅을 읽는다. account 도메인이 rating 도메인에 의존하지 않게 하기 위해서다.
+- **프로필의 최근 대국**: 레이팅과 같은 범위인 사람 간 대국(INVITE·MATCH)만 보여 준다. 컴퓨터 대전은 난이도별 전적으로 따로 보여 준다.
+- **보통 난이도 봇**: "숫자 하나로 확정되는 고양이 칸이 없으면 무작위"에, 숫자 하나로 안전이 확정된 칸은 고르지 않는 규칙을 더했다.
+- **매칭 대기 화면의 범위 표시**: 서버는 `match:waiting`을 대기 시작 때 한 번 보내고, 넓어지는 범위는 클라이언트가 같은 규칙으로 계산해 보여 준다.
+- **재대결 취소 사유**: `game:rematch-cancelled`의 사유는 `DECLINED`, `EXPIRED`, `LEFT`, `UNAVAILABLE`(그 사이 한 사람이 다른 대국에 들어가 새 대국을 만들 수 없음) 네 가지다.
+- **E2E 위치**: `e2e/` 폴더에 따로 둔다. 웹의 Vitest가 `*.spec.ts`를 테스트로 집어 가지 않게 하기 위해서다.

@@ -1,0 +1,32 @@
+# 운영과 같은 구성을 로컬에서 띄운다: Dockerfile 로 만든 앱(화면·API·Socket.IO) + PostgreSQL.
+# 실행: docker compose up --build  →  http://127.0.0.1:8080
+# 운영(Railway)도 앱 하나가 화면까지 제공하므로 nginx 는 두지 않는다(스펙 3.1 배포 기준선 참고).
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://wheresmeow:wheresmeow@db:5432/wheresmeow
+      # 로컬 확인용 값이다. 실제 운영 키는 Railway 변수에만 둔다.
+      WHERESMEOW_SECRET_KEY: local-compose-secret-key-at-least-32-bytes
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: wheresmeow
+      POSTGRES_PASSWORD: wheresmeow
+      POSTGRES_DB: wheresmeow
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wheresmeow"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  db-data:
