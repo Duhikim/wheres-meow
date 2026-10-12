@@ -1,0 +1,81 @@
+import { cellKey, type Cell, type CellPayload, type GameAction, type GameState } from "./types";
+
+function toCell(payload: CellPayload): Cell {
+  return payload.kind === "cat" ? { kind: "cat", seat: payload.seat } : { kind: "number", n: payload.n };
+}
+
+function withCells(cells: Record<string, Cell>, added: CellPayload[]): Record<string, Cell> {
+  const next = { ...cells };
+  for (const cell of added) next[cellKey(cell.x, cell.y)] = toCell(cell);
+  return next;
+}
+
+function withScores(state: GameState, scores: [number, number]): GameState["seats"] {
+  return [
+    { ...state.seats[0], score: scores[0] },
+    { ...state.seats[1], score: scores[1] },
+  ];
+}
+
+/** 서버 이벤트를 version 순서대로만 적용한다. 순서가 어긋나면 적용하지 않고 outOfSync 로 표시한다. */
+export function gameReducer(state: GameState | null, action: GameAction): GameState | null {
+  if (action.type === "started") {
+    const p = action.payload;
+    return {
+      gameId: p.gameId,
+      mode: p.mode,
+      mySeat: p.mySeat,
+      seats: p.seats,
+      currentSeat: p.currentSeat,
+      turnDeadline: p.turnDeadline,
+      version: p.version,
+      cells: withCells({}, p.cells),
+      status: "IN_PROGRESS",
+      result: null,
+      outOfSync: false,
+    };
+  }
+  if (!state || action.payload.gameId !== state.gameId) return state;
+  if (action.payload.version !== state.version + 1) return { ...state, outOfSync: true };
+
+  switch (action.type) {
+    case "revealed": {
+      const p = action.payload;
+      return {
+        ...state,
+        cells: withCells(state.cells, p.cells),
+        seats: withScores(state, p.scores),
+        currentSeat: p.currentSeat,
+        turnDeadline: p.turnDeadline,
+        version: p.version,
+      };
+    }
+    case "timeout": {
+      const p = action.payload;
+      return {
+        ...state,
+        seats: withScores(state, p.scores),
+        currentSeat: p.currentSeat,
+        turnDeadline: p.turnDeadline,
+        version: p.version,
+      };
+    }
+    case "ended": {
+      const p = action.payload;
+      const cells = { ...state.cells };
+      for (const [x, y] of p.cats) {
+        const key = cellKey(x, y);
+        if (!cells[key]) cells[key] = { kind: "cat", seat: null };
+      }
+      return {
+        ...state,
+        cells,
+        seats: withScores(state, p.scores),
+        turnDeadline: null,
+        version: p.version,
+        status: "FINISHED",
+        result: { reason: p.reason, winner: p.winner },
+      };
+    }
+  }
+}
