@@ -1,0 +1,356 @@
+<h2>모바일 화면: 대국 화면 배치와 전체 흐름</h2>
+<p class="subtitle">1번에서 대국 화면 배치를 하나 골라 주십시오. 판은 실제 규칙(12×12, 고양이 25마리)으로 생성해 일부를 연 상태입니다. 2번은 나머지 화면의 흐름이며 확인용입니다.</p>
+
+<style>
+  .phone { width:340px; height:700px; border:9px solid #1f2420; border-radius:34px; background:#eef6e4; overflow:hidden; display:flex; flex-direction:column; font-family:system-ui,-apple-system,sans-serif; color:#2f3a24; box-sizing:content-box; }
+  .phone-wrap { display:flex; justify-content:center; padding:14px; background:#dfe9d4; }
+  .layout-grid.cards { grid-template-columns:repeat(auto-fit, minmax(380px, 1fr)); }
+  .ic { display:inline-block; flex:none; } .ic svg { width:100%; height:100%; display:block; }
+  .center { display:flex; justify-content:center; padding:6px 0; } .grow { flex:1; align-items:center; }
+  .pb { display:grid; gap:1px; padding:4px; background:#3f6b28; border-radius:8px; }
+  .pc { border-radius:3px; overflow:hidden; } .pc svg { width:100%; height:100%; display:block; } .po { background:#e9d8b4; }
+  .sc { font-size:24px; font-weight:800; min-width:30px; text-align:center; } .s1 { color:#e07b2a; } .s2 { color:#36323c; }
+  small { display:block; font-size:11px; opacity:.65; }
+  button { font:inherit; border:0; border-radius:14px; padding:12px; font-weight:700; cursor:default; }
+  .ghost { background:transparent; border:1.5px solid #9bb08a; padding:6px 14px; color:#566b45; }
+  .pri { background:#5c9a35; color:#fff; width:100%; } .sec { background:#fff; color:#3f6b28; width:100%; border:1.5px solid #b9d3a3; }
+  .link { color:#3f7a1f; font-weight:700; font-size:13px; }
+  .muted { opacity:.6; }
+
+  .a-top { display:flex; align-items:center; justify-content:space-between; padding:14px 10px 8px; background:#fff; }
+  .a-p { display:flex; align-items:center; gap:6px; font-size:13px; } .a-p.r { text-align:right; }
+  .vs { font-weight:800; opacity:.35; font-size:12px; }
+  .a-turn { display:flex; justify-content:space-between; padding:8px 14px 4px; font-weight:700; color:#e07b2a; } .a-turn .t { color:#2f3a24; }
+  .bar { height:6px; margin:0 14px 4px; background:#d5e3c7; border-radius:3px; } .bar i { display:block; height:100%; background:#f6a45a; border-radius:3px; }
+  .a-foot { margin-top:auto; display:flex; justify-content:space-between; align-items:center; padding:12px 14px 18px; font-size:13px; }
+
+  .b-card { display:flex; justify-content:space-between; align-items:center; margin:12px 10px 4px; padding:8px 12px; background:#fff; border-radius:14px; }
+  .b-card.me { margin:4px 10px 6px; box-shadow:0 0 0 2.5px #f6a45a; }
+  .b-who { display:flex; gap:8px; align-items:center; font-size:14px; } .b-right { display:flex; gap:10px; align-items:center; }
+  .ring { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; font-weight:800; font-size:14px;
+          background: radial-gradient(#fff 58%, transparent 60%), conic-gradient(#f6a45a calc(var(--p)*1%), #e8e1d2 0); }
+  .ring.off { background:#f1efe9; font-size:10px; color:#999; }
+  .b-foot { margin-top:auto; display:flex; justify-content:space-between; padding:6px 18px 16px; font-size:13px; opacity:.8; }
+
+  .c-top { display:flex; align-items:center; gap:6px; padding:12px 12px 6px; font-size:18px; background:#fff; }
+  .c-left { margin-left:auto; font-size:13px; } .c-menu { font-size:18px; padding-left:6px; }
+  .c-turn { text-align:center; font-weight:700; color:#e07b2a; padding:8px 0 0; font-size:14px; }
+  .c-hint { text-align:center; font-size:11px; opacity:.55; padding:0 0 16px; }
+
+  .flow { display:flex; align-items:flex-start; gap:6px; overflow-x:auto; padding:12px 4px; }
+  .flow-item { flex:none; width:220px; } .flow-item p { text-align:center; font-weight:700; font-size:13px; margin:6px 0 0; }
+  .flow-scale { width:220px; height:465px; } .flow-scale .phone { transform:scale(.611); transform-origin:top left; }
+  .arrow { align-self:center; font-size:22px; opacity:.4; padding-bottom:30px; }
+  .sm { padding:0; } .sm > * { margin-left:22px; margin-right:22px; }
+  .logo { text-align:center; margin-top:46px; } .logo h1 { margin:6px 0 2px; font-size:28px; color:#3f6b28; } .logo p { margin:0; font-size:13px; opacity:.7; }
+  .who { display:flex; align-items:center; gap:8px; margin-top:30px; margin-bottom:14px; padding:10px 12px; background:#fff; border-radius:14px; }
+  .who small { margin-right:auto; }
+  .sm button { margin-top:10px; width:calc(100% - 44px); } .sec small { display:inline; }
+  .row3 { display:flex; justify-content:space-between; margin-top:auto; margin-bottom:26px; font-size:13px; font-weight:700; color:#566b45; }
+  .mid { display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:110px; text-align:center; }
+  .mid h2 { margin:4px 0; font-size:22px; } .code { font-size:34px; font-weight:800; letter-spacing:3px; background:#fff; padding:10px 18px; border-radius:14px; color:#3f6b28; }
+  .big { font-size:42px; font-weight:800; color:#3f6b28; }
+  .win { font-size:40px !important; color:#e07b2a; } .res { display:flex; align-items:center; gap:10px; font-size:34px; }
+  .rate { font-size:18px; } .up { color:#2f9e44; font-weight:800; }
+  .set { margin-top:30px; } .set h2 { margin:0 0 4px; } .set p { font-size:13px; margin:0 0 14px; }
+  .slot { display:inline-flex; flex-direction:column; align-items:center; margin-right:14px; font-weight:800; color:#e07b2a; }
+  .pick { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-top:18px; }
+  .pk { position:relative; background:#e9d8b4; border-radius:10px; padding:4px; display:flex; justify-content:center; }
+  .pk.on { box-shadow:0 0 0 2.5px #5c9a35; } .pk i { position:absolute; top:-7px; right:-5px; font-style:normal; font-size:10px; font-weight:800; background:#5c9a35; color:#fff; border-radius:8px; padding:1px 5px; }
+</style>
+
+<h3>1. 대국 화면 배치 (하나 선택)</h3>
+<div class="cards layout-grid" id="layouts"></div>
+
+<h3 style="margin-top:28px">2. 전체 화면 흐름 (확인용)</h3>
+<p class="subtitle">로비 → (친구 초대 대기 또는 랜덤 매칭 대기) → 대국 → 결과. 내 고양이 설정은 로비에서 들어갑니다.</p>
+<div class="flow" id="flow"></div>
+
+<script>
+(function () {
+  var OUT = '#3a2c25';
+  var COATS = {
+    orange:  { base:'#f6a45a', mark:'#e07b2a', inner:'#ffc2b8', pattern:'stripes', label:'치즈 태비' },
+    cheese:  { base:'#ffd585', mark:'#f2ac45', inner:'#ffc2b8', pattern:'stripes', label:'크림 태비' },
+    gray:    { base:'#aab5c3', mark:'#7d8a9c', inner:'#f7b6c2', pattern:'stripes', label:'회색 태비' },
+    brown:   { base:'#c09068', mark:'#7a5537', inner:'#f2b8a8', pattern:'stripes', label:'고등어' },
+    black:   { base:'#36323c', inner:'#7a6478', pattern:'none', iris:'#f9d64a', dark:true, label:'까망이' },
+    white:   { base:'#fffdf8', inner:'#ffc7d1', pattern:'none', label:'흰둥이' },
+    calico:  { base:'#fffdf8', inner:'#ffc7d1', pattern:'patches', label:'삼색이' },
+    siamese: { base:'#f3e6cf', mark:'#5e4838', inner:'#c9a28a', pattern:'mask', iris:'#6fb7ff', label:'샴' },
+    tuxedo:  { base:'#2f2c33', inner:'#7a6478', pattern:'muzzle', iris:'#9ee26b', dark:true, label:'턱시도' },
+    russian: { base:'#8e9db3', inner:'#c9a8b8', pattern:'none', iris:'#7fd38a', label:'러시안블루' }
+  };
+
+  function ears(type, c, outline) {
+    var st = outline ? ' stroke="' + OUT + '" stroke-width="3" stroke-linejoin="round"' : '';
+    var earFill = c.pattern === 'mask' ? c.mark : c.base;
+    var L, I;
+    if (type === 'round') { L = 'M20 46 Q16 16 34 20 Q44 24 47 36 Z'; I = 'M26 40 Q25 25 34 27 Q40 30 41 36 Z'; }
+    else if (type === 'fold') { L = 'M22 40 Q24 26 38 27 Q42 33 38 39 Z'; I = null; }
+    else { L = 'M21 46 L25 14 Q27 9 32 12 L47 33 Z'; I = 'M27 39 L29 21 L40 33 Z'; }
+    var one = '<path d="' + L + '" fill="' + earFill + '"' + st + '/>' + (I ? '<path d="' + I + '" fill="' + c.inner + '"/>' : '');
+    return one + '<g transform="translate(100,0) scale(-1,1)">' + one + '</g>';
+  }
+
+  function eye(kind, cx, cy, c) {
+    var ink = c.dark ? '#f4e9dc' : '#2b211c';
+    var line = function (d) { return '<path d="' + d + '" fill="none" stroke="' + ink + '" stroke-width="3.2" stroke-linecap="round"/>'; };
+    if (kind === 'happy') return line('M' + (cx - 6) + ' ' + (cy + 2) + ' Q' + cx + ' ' + (cy - 6) + ' ' + (cx + 6) + ' ' + (cy + 2));
+    if (kind === 'sleepy') return line('M' + (cx - 6) + ' ' + cy + ' Q' + cx + ' ' + (cy + 5) + ' ' + (cx + 6) + ' ' + cy);
+    if (kind === 'slit') {
+      return '<ellipse cx="' + cx + '" cy="' + cy + '" rx="6.5" ry="7.2" fill="' + (c.iris || '#c6e86b') + '" stroke="#2b211c" stroke-width="1.2"/>' +
+             '<ellipse cx="' + cx + '" cy="' + cy + '" rx="1.7" ry="5.6" fill="#1b1512"/>' +
+             '<circle cx="' + (cx + 2.2) + '" cy="' + (cy - 3) + '" r="1.5" fill="#fff"/>';
+    }
+    if (kind === 'big' || kind === 'sparkle') {
+      var s = '<ellipse cx="' + cx + '" cy="' + cy + '" rx="7.5" ry="8.6" fill="#2b211c"/>' +
+              (c.iris ? '<ellipse cx="' + cx + '" cy="' + (cy + 2) + '" rx="5" ry="4.5" fill="' + c.iris + '" opacity=".55"/>' : '') +
+              '<circle cx="' + (cx + 2.4) + '" cy="' + (cy - 3.2) + '" r="3" fill="#fff"/>' +
+              '<circle cx="' + (cx - 2.6) + '" cy="' + (cy + 3.2) + '" r="1.4" fill="#fff"/>';
+      if (kind === 'sparkle') s += '<path d="M' + (cx + 9) + ' ' + (cy - 12) + ' l1.2 3 3 1.2 -3 1.2 -1.2 3 -1.2 -3 -3 -1.2 3 -1.2z" fill="#fff3a6" stroke="#e8b800" stroke-width=".6"/>';
+      return s;
+    }
+    // dot
+    if (c.iris) {
+      return '<circle cx="' + cx + '" cy="' + cy + '" r="6" fill="' + c.iris + '" stroke="#1b1512" stroke-width="1"/>' +
+             '<ellipse cx="' + cx + '" cy="' + cy + '" rx="2.2" ry="4.6" fill="#1b1512"/>' +
+             '<circle cx="' + (cx + 1.8) + '" cy="' + (cy - 2.4) + '" r="1.6" fill="#fff"/>';
+    }
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="5.4" fill="#2b211c"/><circle cx="' + (cx + 1.8) + '" cy="' + (cy - 2) + '" r="1.8" fill="#fff"/>';
+  }
+
+  function face(cfg, c) {
+    var outline = cfg.outline !== false;
+    var st = outline ? ' stroke="' + OUT + '" stroke-width="3"' : '';
+    var id = 'h' + cfg.n;
+    var s = ears(cfg.ears || 'pointy', c, outline);
+    s += '<clipPath id="' + id + '"><ellipse cx="50" cy="58" rx="34" ry="28"/></clipPath>';
+    s += '<ellipse cx="50" cy="58" rx="34" ry="28" fill="' + c.base + '"/>';
+    s += '<g clip-path="url(#' + id + ')">';
+    if (c.pattern === 'stripes') {
+      s += '<path d="M43 31 L45.5 40 M50 30 L50 40 M57 31 L54.5 40 M16 55 L25 56.5 M16 61 L25 60.5 M84 55 L75 56.5 M84 61 L75 60.5" stroke="' + c.mark + '" stroke-width="3.4" stroke-linecap="round"/>';
+    } else if (c.pattern === 'patches') {
+      s += '<ellipse cx="28" cy="40" rx="20" ry="17" fill="#f19a4b"/><ellipse cx="74" cy="42" rx="17" ry="15" fill="#3a3434"/>';
+    } else if (c.pattern === 'mask') {
+      s += '<ellipse cx="50" cy="65" rx="19" ry="15" fill="' + c.mark + '" opacity=".85"/>';
+    } else if (c.pattern === 'muzzle') {
+      s += '<path d="M50 44 Q38 58 34 70 Q42 84 50 84 Q58 84 66 70 Q62 58 50 44 Z" fill="#fff"/>';
+    }
+    s += '</g>';
+    if (outline) s += '<ellipse cx="50" cy="58" rx="34" ry="28" fill="none"' + st + '/>';
+    if (cfg.blush) s += '<ellipse cx="27" cy="67" rx="6" ry="3.5" fill="#ff8fa3" opacity=".5"/><ellipse cx="73" cy="67" rx="6" ry="3.5" fill="#ff8fa3" opacity=".5"/>';
+    var eyes = cfg.eyes;
+    if (eyes === 'wink') s += eye('big', 37, 58, c) + eye('happy', 63, 58, c);
+    else s += eye(eyes, 37, 58, c) + eye(eyes, 63, 58, c);
+    var mInk = (c.dark && c.pattern !== 'muzzle') ? '#f4e9dc' : '#2b211c';
+    s += '<path d="M46.5 63.5 Q50 61.5 53.5 63.5 Q50 67.5 46.5 63.5 Z" fill="#ff8fa3"/>';
+    var m = cfg.mouth;
+    var ms = ' fill="none" stroke="' + mInk + '" stroke-width="2.2" stroke-linecap="round"';
+    if (m === 'flat') s += '<path d="M46 69 L54 69"' + ms + '/>';
+    else if (m === 'o') s += '<ellipse cx="50" cy="70" rx="2.6" ry="3.2" fill="' + mInk + '"/>';
+    else {
+      if (m === 'open') s += '<path d="M46.5 68.5 Q50 77 53.5 68.5 Z" fill="#ff7b93"/>';
+      s += '<path d="M43 66.5 Q46.5 71.5 50 67 Q53.5 71.5 57 66.5"' + ms + '/>';
+    }
+    if (cfg.whiskers) s += '<path d="M17 62 L4 59 M17 66 L4 68 M83 62 L96 59 M83 66 L96 68" stroke="' + (c.dark ? '#d9cfc6' : OUT) + '" stroke-width="1.4" opacity=".7" stroke-linecap="round"/>';
+    return s;
+  }
+
+  function grassFront(seed) {
+    var s = '', r = seed;
+    var rnd = function () { r = (r * 9301 + 49297) % 233280; return r / 233280; };
+    for (var x = -4; x < 104; x += 7) {
+      var tip = 66 + rnd() * 12, lean = (rnd() - .5) * 10, col = rnd() > .5 ? '#5fa233' : '#86c94f';
+      s += '<path d="M' + x + ' 101 Q' + (x + 3 + lean / 2) + ' ' + (tip + 14) + ' ' + (x + 4 + lean) + ' ' + tip + ' Q' + (x + 6 + lean / 2) + ' ' + (tip + 14) + ' ' + (x + 9) + ' 101 Z" fill="' + col + '" stroke="#3f7a1f" stroke-width="1"/>';
+    }
+    return s;
+  }
+
+  function cat(cfg) {
+    var c = COATS[cfg.coat];
+    var outline = cfg.outline !== false;
+    var st = outline ? ' stroke="' + OUT + '" stroke-width="3"' : '';
+    var s = '<svg viewBox="0 0 100 100">';
+    if (cfg.pose === 'peek') {
+      s += '<g transform="translate(0,16)">' + face(cfg, c) + '</g>' + grassFront(cfg.n * 37);
+    } else if (cfg.pose === 'paws') {
+      s += '<g transform="translate(0,-4)">' + face(cfg, c) + '</g>';
+      ['34', '66'].forEach(function (x) {
+        s += '<ellipse cx="' + x + '" cy="89" rx="11" ry="7.5" fill="' + c.base + '"' + st + '/>' +
+             '<path d="M' + (x - 3.5) + ' 85 L' + (x - 3.5) + ' 90 M' + (+x + 3.5) + ' 85 L' + (+x + 3.5) + ' 90" stroke="' + (c.dark ? '#d9cfc6' : OUT) + '" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>';
+      });
+    } else if (cfg.pose === 'loaf') {
+      s += '<path d="M84 84 Q100 72 92 58" fill="none" stroke="' + (outline ? OUT : c.base) + '" stroke-width="' + (outline ? 11 : 8) + '" stroke-linecap="round"/>';
+      if (outline) s += '<path d="M84 84 Q100 72 92 58" fill="none" stroke="' + c.base + '" stroke-width="6" stroke-linecap="round"/>';
+      s += '<ellipse cx="50" cy="80" rx="38" ry="17" fill="' + c.base + '"' + st + '/>';
+      s += '<g transform="translate(50,46) scale(.8) translate(-50,-58)">' + face(cfg, c) + '</g>';
+    } else {
+      s += face(cfg, c);
+    }
+    return s + '</svg>';
+  }
+
+  function rng(seed) { var r = seed; return function () { r = (r * 9301 + 49297) % 233280; return r / 233280; }; }
+  function grassTile(kind, seed) {
+    var R = rng(seed + 11), s = '<svg viewBox="0 0 40 40">';
+    if (kind === 'blades') {
+      s += '<rect width="40" height="40" fill="#4f8f2c"/>';
+      for (var row = 0; row < 3; row++) {
+        for (var x = -2; x < 42; x += 5) {
+          var base = 16 + row * 12, tip = base - 12 - R() * 6, lean = (R() - .5) * 6;
+          var col = ['#6fb23f', '#86c94f', '#5c9f31'][Math.floor(R() * 3)];
+          s += '<path d="M' + (x + R() * 2) + ' ' + (base + 6) + ' L' + (x + 2 + lean) + ' ' + tip + ' L' + (x + 4.5) + ' ' + (base + 6) + ' Z" fill="' + col + '"/>';
+        }
+      }
+    } else if (kind === 'tufts') {
+      s += '<rect width="40" height="40" fill="#7cbf4a"/>';
+      var tufts = [[10, 14], [28, 12], [18, 28], [34, 30], [4, 32]];
+      tufts.forEach(function (t) {
+        var cx = t[0] + (R() - .5) * 4, cy = t[1] + (R() - .5) * 4;
+        for (var k = -2; k <= 2; k++) {
+          s += '<path d="M' + cx + ' ' + (cy + 4) + ' Q' + (cx + k * 2.2) + ' ' + (cy - 1) + ' ' + (cx + k * 3.4) + ' ' + (cy - 6 + Math.abs(k)) + '" stroke="' + (k % 2 ? '#4e8f25' : '#9bd765') + '" stroke-width="2" fill="none" stroke-linecap="round"/>';
+        }
+      });
+    } else {
+      // meadow: 키 큰 풀 + 가끔 꽃
+      s += '<rect width="40" height="40" fill="#5c9a35"/><rect y="26" width="40" height="14" fill="#4a8228"/>';
+      for (var x2 = 0; x2 < 40; x2 += 3.4) {
+        var tip2 = 4 + R() * 14, lean2 = (R() - .5) * 8;
+        s += '<path d="M' + x2 + ' 40 Q' + (x2 + lean2 / 2) + ' ' + (tip2 + 14) + ' ' + (x2 + lean2) + ' ' + tip2 + '" stroke="' + (R() > .5 ? '#8fd05a' : '#6db23c') + '" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
+      }
+      if (R() > .6) {
+        var fx = 8 + R() * 24, fy = 8 + R() * 10, fc = R() > .5 ? '#fff' : '#ffe066';
+        s += '<circle cx="' + fx + '" cy="' + fy + '" r="2.6" fill="' + fc + '"/><circle cx="' + fx + '" cy="' + fy + '" r="1" fill="#f59f00"/>';
+      }
+    }
+    return s + '</svg>';
+  }
+  function paw(n) {
+    var f = '#c9b28a';
+    return '<svg viewBox="0 0 40 40">' +
+      '<ellipse cx="10" cy="15" rx="3.6" ry="4.6" fill="' + f + '" transform="rotate(-20 10 15)"/>' +
+      '<ellipse cx="16.5" cy="9" rx="3.6" ry="4.8" fill="' + f + '"/><ellipse cx="23.5" cy="9" rx="3.6" ry="4.8" fill="' + f + '"/>' +
+      '<ellipse cx="30" cy="15" rx="3.6" ry="4.6" fill="' + f + '" transform="rotate(20 30 15)"/>' +
+      '<path d="M20 18 C 28 18, 32 25, 30 30 C 28 35, 23 33, 20 33 C 17 33, 12 35, 10 30 C 8 25, 12 18, 20 18 Z" fill="' + f + '"/>' +
+      '<text x="20" y="30.5" text-anchor="middle" font-size="13" font-weight="800" font-family="system-ui,sans-serif" fill="#3e2f1c">' + n + '</text></svg>';
+  }
+
+  var P1 = { n:16, coat:'orange', pose:'peek', eyes:'big', mouth:'w' };
+  var P2 = { n:17, coat:'black', pose:'peek', eyes:'slit', mouth:'flat' };
+  var F1 = { n:116, coat:'orange', pose:'face', eyes:'big', mouth:'w', blush:true };
+  var F2 = { n:117, coat:'black', pose:'face', eyes:'slit', mouth:'flat' };
+
+  function makeBoard(seed) {
+    var R = rng(seed), N = 12, mines = {}, cnt = 0;
+    while (cnt < 25) { var k = Math.floor(R() * 144); if (!mines[k]) { mines[k] = 1; cnt++; } }
+    var num = function (r, c) {
+      var t = 0;
+      for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) {
+        var rr = r + dr, cc = c + dc;
+        if ((dr || dc) && rr >= 0 && rr < N && cc >= 0 && cc < N && mines[rr * N + cc]) t++;
+      }
+      return t;
+    };
+    var open = {};
+    function flood(r, c) {
+      var k = r * N + c;
+      if (r < 0 || r >= N || c < 0 || c >= N || open[k] || mines[k]) return;
+      open[k] = 1;
+      if (num(r, c) === 0) for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) if (dr || dc) flood(r + dr, c + dc);
+    }
+    var zeros = 0;
+    for (var k2 = 0; k2 < 144 && zeros < 3; k2++) {
+      if (!mines[k2] && num(Math.floor(k2 / N), k2 % N) === 0) { flood(Math.floor(k2 / N), k2 % N); zeros++; k2 += 37; }
+    }
+    var found = {}, f = 0, s1 = 0, s2 = 0;
+    Object.keys(mines).forEach(function (mk) {
+      var m = +mk, r = Math.floor(m / N), c = m % N, adj = false;
+      for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) {
+        var rr = r + dr, cc = c + dc;
+        if (rr >= 0 && rr < N && cc >= 0 && cc < N && open[rr * N + cc]) adj = true;
+      }
+      if (adj && f < 8) { found[m] = (f % 3 === 2) ? 2 : 1; if (found[m] === 1) s1++; else s2++; f++; }
+    });
+    return { N:N, num:num, open:open, found:found, s1:s1, s2:s2, left:25 - f };
+  }
+
+  function boardHtml(b, size, seed, frame) {
+    var h = '<div class="pb" style="grid-template-columns:repeat(12,' + size + 'px);' + (frame || '') + '">';
+    for (var k = 0; k < 144; k++) {
+      var r = Math.floor(k / 12), c = k % 12, st = ' style="width:' + size + 'px;height:' + size + 'px"';
+      if (b.found[k]) h += '<div class="pc po"' + st + '>' + cat(b.found[k] === 1 ? P1 : P2) + '</div>';
+      else if (b.open[k]) { var n = b.num(r, c); h += '<div class="pc po"' + st + '>' + (n ? paw(n) : '') + '</div>'; }
+      else h += '<div class="pc"' + st + '>' + grassTile('meadow', k * 13 + seed) + '</div>';
+    }
+    return h + '</div>';
+  }
+  function icon(cfg, px) { return '<span class="ic" style="width:' + px + 'px;height:' + px + 'px">' + cat(cfg) + '</span>'; }
+
+  var B = makeBoard(7);
+  var me = '빨강냥', op = '까망대장';
+
+  // ---- 대국 화면 배치 A / B / C ----
+  var A = '<div class="phone">' +
+    '<div class="a-top"><div class="a-p">' + icon(F1, 34) + '<div><b>' + me + '</b><small>나</small></div><span class="sc s1">' + B.s1 + '</span></div>' +
+    '<span class="vs">VS</span>' +
+    '<div class="a-p r"><span class="sc s2">' + B.s2 + '</span><div><b>' + op + '</b><small>상대</small></div>' + icon(F2, 34) + '</div></div>' +
+    '<div class="a-turn"><span>🐾 내 차례</span><span class="t">14초</span></div><div class="bar"><i style="width:70%"></i></div>' +
+    '<div class="center">' + boardHtml(B, 25, 3) + '</div>' +
+    '<div class="a-foot"><span>숨은 고양이 <b>' + B.left + '</b>마리</span><button class="ghost">기권</button></div></div>';
+
+  var Bv = '<div class="phone">' +
+    '<div class="b-card"><div class="b-who">' + icon(F2, 38) + '<div><b>' + op + '</b><small>1032 · 상대</small></div></div>' +
+    '<div class="b-right"><span class="sc s2">' + B.s2 + '</span><span class="ring off">대기</span></div></div>' +
+    '<div class="center">' + boardHtml(B, 25, 3) + '</div>' +
+    '<div class="b-card me"><div class="b-who">' + icon(F1, 38) + '<div><b>' + me + '</b><small>1018 · 나</small></div></div>' +
+    '<div class="b-right"><span class="sc s1">' + B.s1 + '</span><span class="ring" style="--p:70">14</span></div></div>' +
+    '<div class="b-foot"><span>숨은 고양이 <b>' + B.left + '</b></span><span>⋯ 메뉴</span></div></div>';
+
+  var C = '<div class="phone">' +
+    '<div class="c-top">' + icon(F1, 26) + '<b class="s1">' + B.s1 + '</b><span>:</span><b class="s2">' + B.s2 + '</b>' + icon(F2, 26) +
+    '<span class="c-left">🌿 ' + B.left + '</span><span class="c-menu">⋯</span></div>' +
+    '<div class="c-turn">🐾 내 차례 · 14초</div>' +
+    '<div class="center grow">' + boardHtml(B, 26, 3, 'box-shadow:0 0 0 4px #f6a45a, 0 0 0 7px #fff3e3;') + '</div>' +
+    '<div class="c-hint">판 테두리 색 = 지금 차례인 플레이어의 고양이 색</div></div>';
+
+  var layouts = [
+    { k:'a', t:'A. 상단 점수판', d:'두 사람 정보와 점수를 위에 모으고, 차례·타이머 막대를 그 아래에 둡니다. 정보가 한곳에 모여 있어 읽기 쉽습니다.', h:A },
+    { k:'b', t:'B. 대면형 (추천)', d:'상대는 위, 나는 아래에 둡니다(체스 앱 방식). 차례인 쪽 카드의 원형 타이머가 돌아가서 누구 차례인지 엄지 근처에서 바로 보입니다.', h:Bv },
+    { k:'c', t:'C. 판 최대화', d:'정보를 얇은 한 줄로 줄이고 칸을 가장 크게(26px) 만듭니다. 차례는 판 테두리 색으로 표시합니다.', h:C }
+  ];
+  document.getElementById('layouts').innerHTML = layouts.map(function (l) {
+    return '<div class="card" data-choice="layout-' + l.k + '" onclick="toggleSelect(this)"><div class="card-image phone-wrap">' + l.h +
+      '</div><div class="card-body"><h3>' + l.t + '</h3><p>' + l.d + '</p></div></div>';
+  }).join('');
+
+  // ---- 화면 흐름 ----
+  var lobby = '<div class="phone sm">' +
+    '<div class="logo">' + icon(P1, 90) + '<h1>Where\'s Meow</h1><p>풀숲에 숨은 고양이를 먼저 찾아라</p></div>' +
+    '<div class="who">' + icon(F1, 28) + '<b>' + me + '</b><small>게스트</small><span class="link">로그인</span></div>' +
+    '<button class="pri">빠른 대전</button><button class="sec">랭크 대전 <small>🔒 로그인 필요</small></button><button class="sec">친구와 대결</button>' +
+    '<div class="row3"><span>🏆 랭킹</span><span>🐱 내 고양이</span><span>⚙ 설정</span></div></div>';
+  var invite = '<div class="phone sm"><div class="mid">' + icon(P1, 80) + '<h2>친구를 기다리는 중</h2>' +
+    '<div class="code">K7Q X9M</div><button class="pri">링크 공유하기</button><button class="sec">코드 복사</button>' +
+    '<small class="muted">9:42 뒤 방이 사라집니다</small><span class="link">취소</span></div></div>';
+  var matching = '<div class="phone sm"><div class="mid">' + icon(P2, 80) + '<h2>상대를 찾는 중…</h2>' +
+    '<div class="big">0:07</div><small class="muted">랭크 대전 · 레이팅 ±150 범위</small><button class="sec">취소</button></div></div>';
+  var result = '<div class="phone sm"><div class="mid"><h2 class="win">승리!</h2>' +
+    '<div class="res">' + icon(F1, 52) + '<b class="s1">14</b><span>:</span><b class="s2">11</b>' + icon(F2, 52) + '</div>' +
+    '<small class="muted">25마리를 모두 찾았습니다</small><div class="rate">1018 → <b>1034</b> <span class="up">+16</span></div>' +
+    '<button class="pri">재대결 신청</button><button class="sec">로비로</button></div></div>';
+  var settings = '<div class="phone sm"><div class="set"><h2>내 고양이</h2><p class="muted">평소엔 1P를 쓰고, 상대와 겹치면 2P로 바뀝니다.</p>' +
+    '<div class="slot"><span>1P</span>' + icon(P1, 56) + '</div><div class="slot"><span>2P</span>' + icon(P2, 56) + '</div>' +
+    '<div class="pick">' + [16, 17, 18, 19, 20, 21, 9, 10, 11, 12].map(function (n, i) {
+      var cfgs = { 16:P1, 17:P2, 18:{ n:18, coat:'calico', pose:'peek', eyes:'dot', mouth:'w', blush:true }, 19:{ n:19, coat:'gray', pose:'peek', eyes:'happy', mouth:'w' },
+        20:{ n:20, coat:'siamese', pose:'peek', eyes:'big', mouth:'w', outline:false }, 21:{ n:21, coat:'white', pose:'peek', eyes:'sleepy', mouth:'w', blush:true },
+        9:{ n:9, coat:'tuxedo', pose:'peek', eyes:'dot', mouth:'w', whiskers:true }, 10:{ n:10, coat:'russian', pose:'peek', eyes:'slit', mouth:'w', outline:false },
+        11:{ n:11, coat:'brown', pose:'peek', eyes:'sleepy', mouth:'w' }, 12:{ n:12, coat:'gray', pose:'peek', eyes:'big', mouth:'w', blush:true, ears:'fold' } };
+      return '<span class="pk' + (i < 2 ? ' on' : '') + '">' + icon(cfgs[n], 40) + (i === 0 ? '<i>1P</i>' : i === 1 ? '<i>2P</i>' : '') + '</span>';
+    }).join('') + '</div></div></div>';
+  var flow = [['로비', lobby], ['친구 초대 대기', invite], ['랜덤 매칭 대기', matching], ['결과', result], ['내 고양이 설정', settings]];
+  document.getElementById('flow').innerHTML = flow.map(function (f, i) {
+    return '<div class="flow-item"><div class="flow-scale">' + f[1] + '</div><p>' + (i + 1) + '. ' + f[0] + '</p></div>';
+  }).join('<div class="arrow">→</div>');
+})();
+</script>
