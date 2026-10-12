@@ -30,13 +30,17 @@ class TestAppConfig:
             with pytest.raises(ValueError):
                 AppConfig(env="staging")
 
+        def test_실패_운영_환경의_서명_키가_32바이트보다_짧으면_시작을_거부한다(self):
+            with pytest.raises(ValueError):
+                AppConfig(env="production", secret_key="short-secret", async_mode="gevent", database_url="postgresql://h/db")
+
         def test_실패_운영_환경이_gevent가_아니면_시작을_거부한다(self):
             with pytest.raises(ValueError):
                 AppConfig(env="production", secret_key="real-secret", async_mode="threading")
 
         def test_성공_운영_환경은_서명_키와_gevent와_PostgreSQL_로_시작한다(self):
             config = AppConfig(
-                env="production", secret_key="real-secret", async_mode="gevent", database_url="postgresql://u:p@h/db"
+                env="production", secret_key="real-secret-" + "x" * 32, async_mode="gevent", database_url="postgresql://u:p@h/db"
             )
 
             assert config.env == "production"

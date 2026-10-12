@@ -5,9 +5,15 @@ from dataclasses import dataclass
 
 from flask_socketio import SocketIO
 
+from wheresmeow.account.adapter.outbound.persistence.sql_account_store import SqlAccountStore
 from wheresmeow.account.adapter.outbound.persistence.sql_player_store import SqlPlayerStore
+from wheresmeow.account.adapter.outbound.persistence.sql_refresh_token_store import SqlRefreshTokenStore
+from wheresmeow.account.adapter.outbound.token.argon2_password_hasher import Argon2PasswordHasher
+from wheresmeow.account.adapter.outbound.token.jwt_access_token_issuer import JwtAccessTokenIssuer
 from wheresmeow.account.adapter.outbound.token.signed_token_issuer import SignedTokenIssuer
+from wheresmeow.account.application.service.authenticator import Authenticator
 from wheresmeow.account.application.service.guest_service import GuestService
+from wheresmeow.account.application.service.member_service import MemberService
 from wheresmeow.bootstrap.config import AppConfig
 from wheresmeow.bot.adapter.inbound.game_events.bot_turn_driver import BotTurnDriver, Scheduler, socketio_scheduler
 from wheresmeow.bot.adapter.outbound.account.account_human_directory import AccountHumanDirectory
@@ -38,6 +44,8 @@ class Container:
     config: AppConfig
     database: Database
     guest_service: GuestService
+    member_service: MemberService
+    authenticator: Authenticator
     game_service: GameService
     room_service: RoomService
     bot_service: BotService
@@ -68,7 +76,19 @@ def build_container(
             else RandomMineLayoutGenerator()
         )
 
-    guest_service = GuestService(SqlPlayerStore(database, clock), SignedTokenIssuer(config.secret_key))
+    players = SqlPlayerStore(database, clock)
+    guest_tokens = SignedTokenIssuer(config.secret_key)
+    access_tokens = JwtAccessTokenIssuer(config.secret_key, clock)
+    guest_service = GuestService(players, guest_tokens)
+    member_service = MemberService(
+        players,
+        SqlAccountStore(database, clock),
+        Argon2PasswordHasher(),
+        access_tokens,
+        SqlRefreshTokenStore(database),
+        clock,
+    )
+    authenticator = Authenticator(players, guest_tokens, access_tokens)
 
     game_options = {"first_seat_chooser": first_seat_chooser} if first_seat_chooser else {}
     bot_driver = BotTurnDriver(bot_scheduler or socketio_scheduler(socketio))
@@ -98,9 +118,11 @@ def build_container(
         config=config,
         database=database,
         guest_service=guest_service,
+        member_service=member_service,
+        authenticator=authenticator,
         game_service=game_service,
         room_service=room_service,
         bot_service=bot_service,
-        http_identity=HttpIdentity(guest_service),
+        http_identity=HttpIdentity(authenticator),
         socket_sessions=SocketSessions(),
     )

@@ -14,6 +14,11 @@ class CreateGuestRequest(BaseModel):
     nickname: str
 
 
+class ChangeNicknameRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    nickname: str
+
+
 class ChangeSkinsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     skin1p: StrictInt
@@ -27,6 +32,7 @@ def player_payload(player: Player) -> dict[str, Any]:
         "nickname": player.nickname,
         "skin1p": player.skin_1p,
         "skin2p": player.skin_2p,
+        "needsNickname": player.needs_nickname,
     }
 
 
@@ -34,6 +40,7 @@ def create_account_blueprint(
     create_guest: CreateGuestUseCase,
     change_skins: ChangeSkinsUseCase,
     issue_token: IssueTokenUseCase,
+    change_nickname: Callable[[str, str], Player],
     current_player: Callable[[], Player],
 ) -> Blueprint:
     blueprint = Blueprint("account", __name__, url_prefix="/api")
@@ -55,5 +62,11 @@ def create_account_blueprint(
         body = parse_payload(ChangeSkinsRequest, request.get_json(silent=True))
         player = change_skins.change_skins(me.id, body.skin1p, body.skin2p)
         return jsonify(player_payload(player))
+
+    @blueprint.put("/players/me/nickname")
+    def put_my_nickname():
+        me = current_player()
+        body = parse_payload(ChangeNicknameRequest, request.get_json(silent=True))
+        return jsonify(player_payload(change_nickname(me.id, body.nickname)))
 
     return blueprint

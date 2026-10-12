@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, Navigate } from "react-router";
 import { api, ApiError } from "../api/http";
 import { CatArt } from "../art/Art";
 import { NicknameForm } from "../components/NicknameForm";
@@ -7,8 +7,8 @@ import { errorMessage } from "../errorMessages";
 import { useGameStore } from "../game/gameStore";
 import { useNavigateOnGameStart, useSecondsLeft } from "../game/hooks";
 import { useRoomStore, type WaitingRoom } from "../room/roomStore";
-import { useSession } from "../session/sessionStore";
-import { getSocket } from "../socket/socket";
+import { logout, useSession } from "../session/sessionStore";
+import { getSocket, resetSocket } from "../socket/socket";
 
 function formatRemaining(seconds: number | null): string {
   if (seconds === null) return "";
@@ -36,6 +36,9 @@ export function LobbyPage() {
     rejoinedFor.current = token;
     getSocket(token).emit("room:join", { code: room.code });
   }, [token, room]);
+
+  // 소셜 로그인으로 막 가입했으면 닉네임부터 정한다
+  if (player?.needsNickname) return <Navigate to="/me/nickname" replace />;
 
   if (!token || !player) {
     return (
@@ -70,6 +73,11 @@ export function LobbyPage() {
   function cancelRoom() {
     if (room) getSocket(token!).emit("room:cancel", { code: room.code });
     clearWaitingRoom();
+  }
+
+  async function signOut() {
+    resetSocket();
+    await logout();
   }
 
   async function copyLink() {
@@ -123,8 +131,21 @@ export function LobbyPage() {
         <CatArt skin={player.skin1p} pose="face" size={36} />
         <div>
           <b>{player.nickname}</b>
-          <small>게스트</small>
+          <small>{player.kind === "MEMBER" ? "회원" : "게스트"}</small>
         </div>
+        <span className="spacer" />
+        <Link className="small" to="/me/nickname">
+          닉네임
+        </Link>
+        {player.kind === "MEMBER" ? (
+          <button className="link-button small" type="button" onClick={signOut}>
+            로그아웃
+          </button>
+        ) : (
+          <Link className="small" to="/login">
+            로그인
+          </Link>
+        )}
       </div>
       <button className="btn primary block" type="button" onClick={createRoom}>
         친구와 대결

@@ -11,13 +11,17 @@ logger = logging.getLogger(__name__)
 HTTP_STATUS_BY_CODE = {
     "INVALID_INPUT": 400,
     "UNAUTHORIZED": 401,
+    "INVALID_CREDENTIALS": 401,
     "NOT_A_PARTICIPANT": 403,
     "NOT_ROOM_HOST": 403,
     "GAME_NOT_FOUND": 404,
     "ROOM_NOT_FOUND": 404,
     "PLAYER_NOT_FOUND": 404,
+    "PROVIDER_DISABLED": 404,
     "ALREADY_IN_GAME": 409,
     "ROOM_FULL": 409,
+    "USERNAME_TAKEN": 409,
+    "NICKNAME_TAKEN": 409,
     "ROOM_EXPIRED": 410,
 }
 
@@ -30,6 +34,10 @@ def register_http_error_handlers(app: Flask) -> None:
     @app.errorhandler(DomainError)
     def on_domain_error(error: DomainError):
         return jsonify(error_body(error.code, error.message)), HTTP_STATUS_BY_CODE.get(error.code, 400)
+
+    @app.errorhandler(429)
+    def on_rate_limited(_error):
+        return jsonify(error_body("RATE_LIMITED", "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요")), 429
 
     @app.errorhandler(Exception)
     def on_unexpected(error: Exception):

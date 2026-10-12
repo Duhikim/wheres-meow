@@ -32,6 +32,22 @@ class QueueScheduler:
             self.queue.pop(0)()
 
 
+class FakeOAuthClient:
+    """소셜 로그인 제공자 흉내. kakao 만 켜져 있고 콜백은 항상 같은 사용자 ID 를 돌려준다."""
+
+    def __init__(self) -> None:
+        self.user_id = "kakao-user-1"
+
+    def enabled_providers(self) -> list[str]:
+        return ["kakao"]
+
+    def authorize_url(self, provider: str, redirect_uri: str) -> str:
+        return f"https://fake-provider.test/{provider}?redirect_uri={redirect_uri}"
+
+    def fetch_user_id(self, provider: str, redirect_uri: str) -> str:
+        return self.user_id
+
+
 @dataclass
 class AppEnv:
     app: Flask
@@ -57,6 +73,7 @@ def build_app_env(database: Database | None = None) -> AppEnv:
         layout_generator=FixedMineLayoutGenerator(INTEGRATION_CATS),
         first_seat_chooser=lambda: 0,
         bot_scheduler=bot_scheduler,
+        oauth_client=FakeOAuthClient(),
     )
     return AppEnv(app, socketio, app.test_client(), clock, timer, database, bot_scheduler)
 

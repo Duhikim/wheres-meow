@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { ApiError } from "../api/http";
 import { errorMessage } from "../errorMessages";
 import { createGuest } from "../session/sessionStore";
@@ -35,6 +36,9 @@ export function NicknameForm() {
         게스트로 시작
       </button>
       {error && <p className="error">{error}</p>}
+      <p className="muted small">
+        회원이신가요? <Link to="/login">로그인</Link> · <Link to="/signup">회원가입</Link>
+      </p>
     </form>
   );
 }

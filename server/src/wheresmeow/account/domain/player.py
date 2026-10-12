@@ -36,6 +36,11 @@ class Player:
     nickname: str
     skin_1p: int = DEFAULT_SKIN_1P
     skin_2p: int = DEFAULT_SKIN_2P
+    needs_nickname: bool = False  # 소셜 로그인으로 막 가입해 임시 닉네임을 쓰는 중
+
+    def rename(self, nickname: str) -> None:
+        self.nickname = normalize_nickname(nickname)
+        self.needs_nickname = False
 
     def change_skins(self, skin_1p: int, skin_2p: int) -> None:
         """1P·2P 스킨을 바꾼다. 둘 다 허용 목록에 있고 서로 달라야 한다(대국에서 겹침을 피하는 근거)."""

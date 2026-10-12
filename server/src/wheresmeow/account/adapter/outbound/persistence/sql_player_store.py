@@ -22,6 +22,7 @@ class SqlPlayerStore:
             row.nickname = player.nickname
             row.skin_1p = player.skin_1p
             row.skin_2p = player.skin_2p
+            row.needs_nickname = player.needs_nickname
             row.last_seen_at = now
 
     def get(self, player_id: str) -> Player | None:
@@ -31,4 +32,4 @@ class SqlPlayerStore:
 
 
 def to_player(row: PlayerRow) -> Player:
-    return Player(row.id, PlayerKind(row.kind), row.nickname, row.skin_1p, row.skin_2p)
+    return Player(row.id, PlayerKind(row.kind), row.nickname, row.skin_1p, row.skin_2p, bool(row.needs_nickname))

@@ -17,6 +17,11 @@ dependencies = [
     "sqlalchemy==2.1.4",
     "alembic==1.20.0",
     "pg8000==1.31.5",
+    "argon2-cffi==25.1.0",
+    "pyjwt==2.15.1",
+    "flask-limiter==4.1.1",
+    "authlib==1.8.0",
+    "requests==2.34.2",
 ]
 
 [project.optional-dependencies]
@@ -29,3 +34,5 @@ where = ["src"]
 testpaths = ["tests"]
 pythonpath = ["src", "tests"]
 addopts = "-q"
+# 테스트는 짧은 서명 키를 쓴다. 운영 키 길이는 AppConfig 가 32바이트 이상으로 강제한다.
+filterwarnings = ["ignore::jwt.warnings.InsecureKeyLengthWarning"]
