@@ -18,12 +18,14 @@ class FakeGameEventPublisher:
     def __init__(self) -> None:
         self.started: list = []
         self.published: list = []  # (game_id, events)
+        self.rating_changes_at_publish: list = []  # 발행 시점에 대국에 붙어 있던 레이팅 변화
 
     def game_started(self, game) -> None:
         self.started.append(game)
 
     def publish(self, game, events: Sequence) -> None:
         self.published.append((game.id, list(events)))
+        self.rating_changes_at_publish.append(getattr(game, "rating_changes", None))
 
 
 class FakeTurnTimer:
@@ -44,8 +46,10 @@ class FakeGameResultRecorder:
     def __init__(self) -> None:
         self.recorded: list = []
         self.fail_with: Exception | None = None
+        self.rating_changes = None  # record 가 돌려줄 레이팅 변화
 
-    def record(self, game) -> None:
+    def record(self, game):
         if self.fail_with:
             raise self.fail_with
         self.recorded.append(game.id)
+        return self.rating_changes

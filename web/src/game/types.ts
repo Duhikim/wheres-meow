@@ -45,19 +45,34 @@ export interface TimeoutPayload {
 
 export type EndReason = "ALL_FOUND" | "FORFEIT" | "AUTO_FORFEIT";
 
+export interface RatingChange {
+  before: number;
+  after: number;
+}
+
+/** 좌석 순서대로의 레이팅 변화. 사람 간 대국이 아니거나 서버가 결과를 저장하지 못했으면 null. */
+export type RatingChanges = [RatingChange, RatingChange] | null;
+
+export interface GameResult {
+  reason: EndReason;
+  winner: SeatIndex | null;
+  ratingChanges: RatingChanges;
+}
+
 export interface EndedPayload {
   gameId: string;
   reason: EndReason;
   winner: SeatIndex | null;
   scores: [number, number];
   cats: [number, number][];
+  ratingChanges: RatingChanges;
   version: number;
 }
 
 /** game:sync 응답. 끝난 대국이면 result 와 cats 가 있다. */
 export interface StatePayload extends StartedPayload {
   status: "IN_PROGRESS" | "FINISHED";
-  result: { reason: EndReason; winner: SeatIndex | null } | null;
+  result: GameResult | null;
   timeouts: [number, number];
   cats?: [number, number][];
 }
@@ -78,7 +93,7 @@ export interface GameState {
   version: number;
   cells: Record<string, Cell>;
   status: "IN_PROGRESS" | "FINISHED";
-  result: { reason: EndReason; winner: SeatIndex | null } | null;
+  result: GameResult | null;
   outOfSync: boolean; // version 이 건너뛰었다. 2단계에서 game:sync 로 복구한다
 }
 

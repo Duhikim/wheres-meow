@@ -135,3 +135,25 @@ a:not(.btn) { color: var(--grass-dark); font-weight: 700; }
   .pop, .result-card, .turn-label.thinking { animation: none; }
   .btn, .seat-card, .timer-bar i { transition: none; }
 }
+
+/* ---- 랭킹·프로필·매칭 ---- */
+.row-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rank-list, .recent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rank-row, .recent-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--card); border-radius: 12px; }
+.rank-no { width: 28px; text-align: center; font-weight: 800; color: var(--grass-dark); }
+.rank-name, .recent-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rank-name a, .recent-name a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-name small, .recent-name small { color: var(--muted); }
+.rank-rating { font-size: 18px; color: var(--grass-dark); }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.profile-head { display: flex; align-items: center; gap: 12px; }
+.profile-head h2 { margin: 0; }
+.profile-rating { display: flex; flex-direction: column; align-items: flex-end; }
+.profile-rating b { font-size: 26px; color: var(--grass-dark); }
+.recent-result { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; background: var(--muted); }
+.recent-row.win .recent-result { background: var(--grass); }
+.recent-row.loss .recent-result { background: var(--danger); }
+.recent-delta { font-weight: 700; color: var(--muted); }
+.rating-change { margin: 0; }
+.rating-change .up { color: var(--grass-dark); font-weight: 700; }
+.rating-change .down { color: var(--danger); font-weight: 700; }

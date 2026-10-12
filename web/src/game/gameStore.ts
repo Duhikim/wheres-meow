@@ -1,5 +1,6 @@
 import type { Socket } from "socket.io-client";
 import { create } from "zustand";
+import { useMatchStore, type MatchWaiting } from "../match/matchStore";
 import { ROOM_GONE_CODES, useRoomStore, type WaitingRoom } from "../room/roomStore";
 import { gameReducer } from "./gameReducer";
 import type {
@@ -31,8 +32,11 @@ export const useGameStore = create<GameStore>((set) => ({
 export function bindGameEvents(socket: Socket): void {
   const { dispatch, setError } = useGameStore.getState();
   const rooms = useRoomStore.getState();
+  const match = useMatchStore.getState();
   socket.on("connect", () => {
     useGameStore.setState({ connection: "connected" });
+    // 서버는 연결이 끊긴 사람을 대기열에서 뺀다. 기다리던 중이었다면 다시 줄을 선다.
+    if (useMatchStore.getState().waiting) socket.emit("match:join");
     // 끊긴 사이 놓친 이벤트가 있을 수 있으므로 진행 중인 대국의 전체 상태를 다시 받는다
     const game = useGameStore.getState().game;
     if (game?.status === "IN_PROGRESS") socket.emit("game:sync", { gameId: game.gameId });
@@ -43,9 +47,11 @@ export function bindGameEvents(socket: Socket): void {
   });
   socket.on("room:waiting", (payload: WaitingRoom) => rooms.setWaitingRoom(payload));
   socket.on("room:cancelled", () => rooms.clearWaitingRoom());
+  socket.on("match:waiting", (payload: MatchWaiting) => match.setWaiting(payload));
   socket.on("game:started", (payload: StartedPayload) => {
     setError(null);
     rooms.clearWaitingRoom();
+    match.clearWaiting();
     dispatch({ type: "started", payload });
   });
   socket.on("game:state", (payload: StatePayload) => dispatch({ type: "state", payload }));
@@ -54,6 +60,7 @@ export function bindGameEvents(socket: Socket): void {
   socket.on("game:ended", (payload: EndedPayload) => dispatch({ type: "ended", payload }));
   socket.on("error", (payload: { code: string }) => {
     if (ROOM_GONE_CODES.has(payload.code)) rooms.clearWaitingRoom();
+    if (payload.code === "ALREADY_IN_GAME") match.clearWaiting();
     setError(payload.code);
   });
 }

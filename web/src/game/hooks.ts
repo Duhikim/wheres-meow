@@ -33,6 +33,17 @@ export function useSecondsLeft(deadline: number | null): number | null {
   return deadline === null ? null : Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
 }
 
+/** start 부터 지난 초(내림). start 가 없으면 0. 1초마다 다시 그린다. */
+export function useElapsedSeconds(start: number | null): number {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (start === null) return;
+    const id = setInterval(() => setTick((tick) => tick + 1), 1000);
+    return () => clearInterval(id);
+  }, [start]);
+  return start === null ? 0 : Math.max(0, Math.floor((Date.now() - start) / 1000));
+}
+
 export function useViewportWidth(): number {
   const [width, setWidth] = useState(() => window.innerWidth);
   useEffect(() => {

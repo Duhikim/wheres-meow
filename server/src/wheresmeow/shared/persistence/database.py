@@ -31,6 +31,13 @@ def ms_to_datetime(ms: int) -> datetime:
     return datetime.fromtimestamp(ms / 1000, tz=UTC)
 
 
+def datetime_to_ms(value: datetime) -> int:
+    """SQLite 는 시간대를 버리고 돌려주므로, 시간대가 없으면 저장할 때 쓴 UTC 로 본다."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return round(value.timestamp() * 1000)
+
+
 class Database:
     def __init__(self, url: str) -> None:
         self.url = normalize_database_url(url)

@@ -5,7 +5,8 @@ import { CatArt } from "../art/Art";
 import { NicknameForm } from "../components/NicknameForm";
 import { errorMessage } from "../errorMessages";
 import { useGameStore } from "../game/gameStore";
-import { useNavigateOnGameStart, useSecondsLeft } from "../game/hooks";
+import { useElapsedSeconds, useNavigateOnGameStart, useSecondsLeft } from "../game/hooks";
+import { currentRange, useMatchStore } from "../match/matchStore";
 import { useRoomStore, type WaitingRoom } from "../room/roomStore";
 import { logout, useSession } from "../session/sessionStore";
 import { getSocket, resetSocket } from "../socket/socket";
@@ -21,6 +22,8 @@ export function LobbyPage() {
   const { token, player } = useSession();
   const lastError = useGameStore((s) => s.lastError);
   const { waitingRoom: room, setWaitingRoom, clearWaitingRoom } = useRoomStore();
+  const { waiting: matchWaiting, waitingStartedAt, clearWaiting: clearMatchWaiting } = useMatchStore();
+  const matchElapsed = useElapsedSeconds(waitingStartedAt);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const rejoinedFor = useRef<string | null>(null);
@@ -70,6 +73,17 @@ export function LobbyPage() {
     }
   }
 
+  function joinMatch() {
+    setError(null);
+    useGameStore.getState().setError(null);
+    getSocket(token!).emit("match:join"); // 서버가 match:waiting 을 보내면 대기 화면으로 바뀐다
+  }
+
+  function leaveMatch() {
+    getSocket(token!).emit("match:leave");
+    clearMatchWaiting();
+  }
+
   function cancelRoom() {
     if (room) getSocket(token!).emit("room:cancel", { code: room.code });
     clearWaitingRoom();
@@ -91,6 +105,24 @@ export function LobbyPage() {
     } catch {
       // 사용자가 공유 시트를 닫은 경우다. 따로 알릴 것이 없다.
     }
+  }
+
+  if (matchWaiting) {
+    const range = currentRange(matchWaiting.range, matchElapsed);
+    return (
+      <main className="page center">
+        <CatArt skin={player.skin1p} size={104} />
+        <h2>상대를 찾는 중</h2>
+        <div className="room-code" aria-label="기다린 시간">
+          {formatRemaining(matchElapsed)}
+        </div>
+        <p className="muted">{range === null ? "레이팅과 관계없이 찾고 있습니다" : `레이팅 ±${range} 안에서 찾고 있습니다`}</p>
+        {lastError && <p className="error">{errorMessage(lastError)}</p>}
+        <button className="btn ghost" type="button" onClick={leaveMatch}>
+          취소
+        </button>
+      </main>
+    );
   }
 
   if (room) {
@@ -147,7 +179,10 @@ export function LobbyPage() {
           </Link>
         )}
       </div>
-      <button className="btn primary block" type="button" onClick={createRoom}>
+      <button className="btn primary block" type="button" onClick={joinMatch}>
+        ⚡ 빠른 대전
+      </button>
+      <button className="btn secondary block" type="button" onClick={createRoom}>
         친구와 대결
       </button>
       <Link className="btn secondary block" to="/bot">
@@ -156,6 +191,14 @@ export function LobbyPage() {
       <Link className="btn secondary block" to="/me/cats">
         🐱 내 고양이
       </Link>
+      <div className="row-links">
+        <Link className="btn ghost" to="/ranking">
+          🏆 랭킹
+        </Link>
+        <Link className="btn ghost" to={`/players/${player.id}`}>
+          📊 내 전적
+        </Link>
+      </div>
       {(error || lastError) && <p className="error">{error ?? errorMessage(lastError!)}</p>}
     </main>
   );

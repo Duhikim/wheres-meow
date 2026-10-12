@@ -19,6 +19,6 @@ class SocketIOGameEventPublisher:
 
     def publish(self, game: Game, events: Sequence[GameEvent]) -> None:
         for event in events:
-            name, payload = event_payload(game.id, event)
+            name, payload = event_payload(game, event)
             for seat in game.seats:
                 self._socketio.emit(name, payload, to=player_room(seat.player_id))

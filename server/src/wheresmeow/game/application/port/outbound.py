@@ -3,7 +3,7 @@
 from collections.abc import Callable, Sequence
 from typing import Protocol
 
-from wheresmeow.game.domain.game import Game, GameEvent
+from wheresmeow.game.domain.game import Game, GameEvent, RatingChange
 
 
 class GameStore(Protocol):
@@ -33,6 +33,9 @@ class TurnTimer(Protocol):
 
 
 class GameResultRecorder(Protocol):
-    def record(self, game: Game) -> None:
-        """끝난 대국을 영구 저장한다. 실패하면 예외를 던진다(호출 측이 로그를 남긴다)."""
+    def record(self, game: Game) -> tuple[RatingChange, RatingChange] | None:
+        """끝난 대국을 영구 저장하고, 레이팅이 바뀌었으면 좌석 순서대로 돌려준다.
+
+        실패하면 예외를 던진다(호출 측이 로그를 남긴다).
+        """
         ...

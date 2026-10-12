@@ -33,9 +33,10 @@ class SocketSessions:
         with self._guard:
             self._players[sid] = player_id
 
-    def unbind(self, sid: str) -> None:
+    def unbind(self, sid: str) -> str | None:
+        """이 연결에 묶여 있던 플레이어 ID 를 돌려준다(인증 전에 끊겼으면 None)."""
         with self._guard:
-            self._players.pop(sid, None)
+            return self._players.pop(sid, None)
 
     def current_player_id(self) -> str:
         with self._guard:

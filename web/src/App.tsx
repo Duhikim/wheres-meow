@@ -9,6 +9,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { MyCatsPage } from "./pages/MyCatsPage";
 import { NicknamePage } from "./pages/NicknamePage";
 import { PlayPage } from "./pages/PlayPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { RankingPage } from "./pages/RankingPage";
 import { SignupPage } from "./pages/SignupPage";
 import { verifySession } from "./session/sessionStore";
 
@@ -30,6 +32,8 @@ export function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/me/nickname" element={<NicknamePage />} />
+        <Route path="/ranking" element={<RankingPage />} />
+        <Route path="/players/:id" element={<ProfilePage />} />
       </Routes>
     </BrowserRouter>
   );

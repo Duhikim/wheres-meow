@@ -8,7 +8,7 @@ from wheresmeow.game.application.port.inbound import GamePlayer
 from wheresmeow.game.application.port.outbound import GameEventPublisher, GameResultRecorder, GameStore, TurnTimer
 from wheresmeow.game.domain.board import BOARD_SIZE, CAT_COUNT, Board, MineLayoutGenerator
 from wheresmeow.game.domain.errors import AlreadyInGame, GameNotFound
-from wheresmeow.game.domain.game import Game, GameEvent, GameMode, GameStatus, Seat
+from wheresmeow.game.domain.game import Game, GameEvent, GameMode, GameStatus, RatingChange, Seat
 from wheresmeow.game.domain.skins import assign_skins
 from wheresmeow.shared.clock import Clock
 
@@ -99,7 +99,7 @@ class GameService:
                 return
             self._store.save(game)
             if game.status is GameStatus.FINISHED:
-                self._record(game)  # 종료 알림보다 먼저 저장한다(스펙 8절)
+                game.rating_changes = self._record(game)  # 종료 알림보다 먼저 저장한다(스펙 8절)
             self._publisher.publish(game, events)
             if game.status is GameStatus.IN_PROGRESS:
                 self._schedule_turn(game)
@@ -107,9 +107,9 @@ class GameService:
             with self._locks_guard:
                 self._locks.pop(game_id, None)
 
-    def _record(self, game: Game) -> None:
+    def _record(self, game: Game) -> tuple[RatingChange, RatingChange] | None:
         try:
-            self._recorder.record(game)
+            return self._recorder.record(game)
         except Exception:
             # 저장에 실패해도 대국 종료는 알려야 한다. 결과 전체를 남겨 수동으로 복구할 수 있게 한다.
             logger.exception(
@@ -117,6 +117,7 @@ class GameService:
                 game.id, game.mode, [(s.player_id, s.nickname, s.skin) for s in game.seats], game.scores,
                 game.winner, game.end_reason, sorted(game.board.cats), game.moves,
             )
+            return None  # 레이팅 변화도 저장되지 않았으므로 알리지 않는다
 
     def _schedule_turn(self, game: Game) -> None:
         assert game.turn_deadline_ms is not None

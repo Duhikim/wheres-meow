@@ -8,7 +8,7 @@ from wheresmeow.game.application.port.inbound import GamePlayer
 from wheresmeow.game.application.service.game_service import GameService
 from wheresmeow.game.domain.board import FixedMineLayoutGenerator
 from wheresmeow.game.domain.errors import AlreadyInGame, GameNotFound, NotAParticipant
-from wheresmeow.game.domain.game import TURN_MS, CellsRevealed, GameEnded, GameMode, TurnTimedOut
+from wheresmeow.game.domain.game import TURN_MS, CellsRevealed, GameEnded, GameMode, RatingChange, TurnTimedOut
 from wheresmeow.game.domain.skins import SkinPreference
 
 # 12x12 판. 고양이를 아래쪽 두 줄과 (11,9) 에 몰아 두어 (0,0) 은 빈 칸이다.
@@ -195,6 +195,18 @@ class TestGameServiceRecording:
             assert isinstance(publisher.published[-1][1][-1], GameEnded)
             assert "대국 결과 저장 실패" in caplog.text
             assert "g1" in caplog.text
+            assert publisher.rating_changes_at_publish[-1] is None
+
+        def test_성공_기록이_돌려준_레이팅_변화를_종료_알림_전에_대국에_붙인다(self, env):
+            service, _, publisher, _, _ = env
+            service.start_game(GameMode.INVITE, HOST, GUEST)
+            changes = (RatingChange(1000, 1016), RatingChange(1000, 984))
+            service.recorder.rating_changes = changes
+
+            service.forfeit("g1", "guest")
+
+            assert isinstance(publisher.published[-1][1][-1], GameEnded)
+            assert publisher.rating_changes_at_publish[-1] == changes
 
 
 class TestGameServiceCurrentGame:

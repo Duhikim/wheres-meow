@@ -83,6 +83,14 @@ class GameEnded:
 GameEvent = CellsRevealed | TurnTimedOut | GameEnded
 
 
+@dataclass(frozen=True)
+class RatingChange:
+    """끝난 대국으로 한 좌석의 레이팅이 어떻게 바뀌었는지. 판정은 rating 도메인이 하고 대국은 결과로만 들고 있다."""
+
+    before: int
+    after: int
+
+
 @dataclass
 class Game:
     id: str
@@ -101,6 +109,8 @@ class Game:
     winner: int | None = None
     opened: dict[Position, OpenedCell] = field(default_factory=dict)
     moves: list[dict] = field(default_factory=list)
+    # 결과를 저장한 뒤 좌석 순서대로 붙는다. 사람 간 대국이 아니거나 저장에 실패하면 None 으로 남는다.
+    rating_changes: tuple[RatingChange, RatingChange] | None = None
 
     def __post_init__(self) -> None:
         if self.first_seat not in (0, 1):

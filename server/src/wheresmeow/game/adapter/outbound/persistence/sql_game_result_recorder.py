@@ -4,15 +4,18 @@ from typing import Protocol
 from sqlalchemy.orm import Session
 
 from wheresmeow.game.adapter.outbound.persistence.models import GameRecordRow
-from wheresmeow.game.domain.game import Game
+from wheresmeow.game.domain.game import Game, RatingChange
 from wheresmeow.shared.clock import Clock
 from wheresmeow.shared.persistence.database import Database, ms_to_datetime
 
 
 class ResultContributor(Protocol):
-    """대국 기록과 같은 트랜잭션에서 함께 갱신할 것(봇 전적, 레이팅 등). 실패하면 기록 전체가 롤백된다."""
+    """대국 기록과 같은 트랜잭션에서 함께 갱신할 것(봇 전적, 레이팅 등). 실패하면 기록 전체가 롤백된다.
 
-    def contribute(self, session: Session, game: Game) -> None: ...
+    레이팅을 바꾼 기여자만 변화를 돌려주고, 나머지는 None 을 돌려준다.
+    """
+
+    def contribute(self, session: Session, game: Game) -> tuple[RatingChange, RatingChange] | None: ...
 
 
 class SqlGameResultRecorder:
@@ -23,7 +26,7 @@ class SqlGameResultRecorder:
         self._clock = clock
         self._contributors = list(contributors)
 
-    def record(self, game: Game) -> None:
+    def record(self, game: Game) -> tuple[RatingChange, RatingChange] | None:
         if game.end_reason is None:
             raise ValueError(f"끝나지 않은 대국은 기록할 수 없습니다: {game.id}")
         first, second = game.seats
@@ -46,7 +49,14 @@ class SqlGameResultRecorder:
             started_at=ms_to_datetime(game.started_at_ms),
             ended_at=ms_to_datetime(self._clock.now_ms()),
         )
+        rating_changes = None
         with self._database.session() as session:
             session.add(row)
             for contributor in self._contributors:
-                contributor.contribute(session, game)
+                changes = contributor.contribute(session, game)
+                if changes is None:
+                    continue
+                if rating_changes is not None:
+                    raise ValueError(f"레이팅 변화를 돌려준 기여자가 둘 이상입니다: {game.id}")
+                rating_changes = changes
+        return rating_changes

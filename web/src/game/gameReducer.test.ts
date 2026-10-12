@@ -97,11 +97,11 @@ describe("gameReducer", () => {
 
       const state = gameReducer(outOfSync, {
         type: "ended",
-        payload: { gameId: "g1", reason: "ALL_FOUND", winner: 1, scores: [10, 15], cats: [[2, 2]], version: 9 },
+        payload: { gameId: "g1", reason: "ALL_FOUND", winner: 1, scores: [10, 15], cats: [[2, 2]], ratingChanges: null, version: 9 },
       })!;
 
       expect(state.status).toBe("FINISHED");
-      expect(state.result).toEqual({ reason: "ALL_FOUND", winner: 1 });
+      expect(state.result).toEqual({ reason: "ALL_FOUND", winner: 1, ratingChanges: null });
       expect(state.seats[1].score).toBe(15);
       expect(state.version).toBe(9);
     });
@@ -124,11 +124,23 @@ describe("gameReducer", () => {
 
       const state = gameReducer(afterReveal, {
         type: "ended",
-        payload: { gameId: "g1", reason: "FORFEIT", winner: 0, scores: [1, 0], cats: [[1, 1], [2, 2]], version: 2 },
+        payload: {
+          gameId: "g1",
+          reason: "FORFEIT",
+          winner: 0,
+          scores: [1, 0],
+          cats: [[1, 1], [2, 2]],
+          ratingChanges: [{ before: 1000, after: 1016 }, { before: 1000, after: 984 }],
+          version: 2,
+        },
       })!;
 
       expect(state.status).toBe("FINISHED");
-      expect(state.result).toEqual({ reason: "FORFEIT", winner: 0 });
+      expect(state.result).toEqual({
+        reason: "FORFEIT",
+        winner: 0,
+        ratingChanges: [{ before: 1000, after: 1016 }, { before: 1000, after: 984 }],
+      });
       expect(state.cells["1,1"]).toEqual({ kind: "cat", seat: 0 });
       expect(state.cells["2,2"]).toEqual({ kind: "cat", seat: null });
       expect(state.turnDeadline).toBeNull();
@@ -165,14 +177,14 @@ describe("gameReducer", () => {
           version: 3,
           cells: [{ x: 1, y: 1, kind: "cat", seat: 0 }],
           status: "FINISHED",
-          result: { reason: "FORFEIT", winner: 0 },
+          result: { reason: "FORFEIT", winner: 0, ratingChanges: [{ before: 990, after: 1000 }, { before: 1010, after: 1000 }] },
           timeouts: [0, 0],
           cats: [[1, 1], [5, 5]],
         },
       })!;
 
       expect(state.status).toBe("FINISHED");
-      expect(state.result).toEqual({ reason: "FORFEIT", winner: 0 });
+      expect(state.result?.ratingChanges?.[0]).toEqual({ before: 990, after: 1000 });
       expect(state.cells["5,5"]).toEqual({ kind: "cat", seat: null });
       expect(state.turnDeadline).toBeNull();
     });

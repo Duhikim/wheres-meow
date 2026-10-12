@@ -15,6 +15,8 @@ from wheresmeow.bot.adapter.inbound.socket.bot_socket_handlers import register_b
 from wheresmeow.bot.adapter.inbound.web.bot_api import create_bot_blueprint
 from wheresmeow.game.adapter.inbound.socket.game_socket_handlers import register_game_socket_handlers
 from wheresmeow.game.adapter.inbound.web.game_api import create_game_blueprint
+from wheresmeow.matchmaking.adapter.inbound.match_socket_handlers import register_match_socket_handlers
+from wheresmeow.rating.adapter.inbound.web.rating_api import create_rating_blueprint
 from wheresmeow.room.adapter.inbound.socket.room_socket_handlers import register_room_socket_handlers
 from wheresmeow.room.adapter.inbound.web.room_api import create_room_blueprint
 from wheresmeow.shared.errors import DomainError
@@ -70,12 +72,16 @@ def create_app(config: AppConfig | None = None, **overrides) -> tuple[Flask, Soc
     )
     app.register_blueprint(create_game_blueprint(container.game_service, identity.current_player_id))
     app.register_blueprint(create_bot_blueprint(container.bot_service, identity.current_player_id))
+    app.register_blueprint(create_rating_blueprint(container.rating_query_service, container.rating_query_service))
 
     sessions = container.socket_sessions
     register_room_socket_handlers(
         socketio, container.room_service, container.room_service, sessions.current_player_id
     )
     register_bot_socket_handlers(socketio, container.bot_service, sessions.current_player_id)
+    register_match_socket_handlers(
+        socketio, container.matchmaking_service, container.matchmaking_service, sessions.current_player_id
+    )
     register_game_socket_handlers(
         socketio, container.game_service, container.game_service, container.game_service, sessions.current_player_id
     )
@@ -102,4 +108,6 @@ def _register_connection_handlers(socketio: SocketIO, container: Container) -> N
 
     @socketio.on("disconnect")
     def on_disconnect(*_args):
-        container.socket_sessions.unbind(request.sid)
+        player_id = container.socket_sessions.unbind(request.sid)
+        if player_id is not None:
+            container.matchmaking_service.leave_match(player_id)  # 연결이 끊기면 대기열에서 뺀다(스펙 4.3)

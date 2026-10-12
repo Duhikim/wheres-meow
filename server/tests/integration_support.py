@@ -32,6 +32,20 @@ class QueueScheduler:
             self.queue.pop(0)()
 
 
+class ManualRepeater:
+    """1초마다 도는 매칭 틱 대신, 등록된 작업을 tick() 으로 직접 한 번 실행한다."""
+
+    def __init__(self) -> None:
+        self.tasks = []
+
+    def __call__(self, task) -> None:
+        self.tasks.append(task)
+
+    def tick(self) -> None:
+        for task in self.tasks:
+            task()
+
+
 class FakeOAuthClient:
     """소셜 로그인 제공자 흉내. kakao 만 켜져 있고 콜백은 항상 같은 사용자 ID 를 돌려준다."""
 
@@ -57,6 +71,7 @@ class AppEnv:
     timer: FakeTurnTimer
     database: Database
     bot_scheduler: QueueScheduler
+    match_repeater: ManualRepeater
 
 
 def build_app_env(database: Database | None = None) -> AppEnv:
@@ -65,6 +80,7 @@ def build_app_env(database: Database | None = None) -> AppEnv:
     clock = FakeClock(now_ms=0)
     timer = FakeTurnTimer()
     bot_scheduler = QueueScheduler()
+    match_repeater = ManualRepeater()
     app, socketio = create_app(
         AppConfig(env="test", secret_key="test-secret", database_url="sqlite://"),
         database=database,
@@ -73,9 +89,10 @@ def build_app_env(database: Database | None = None) -> AppEnv:
         layout_generator=FixedMineLayoutGenerator(INTEGRATION_CATS),
         first_seat_chooser=lambda: 0,
         bot_scheduler=bot_scheduler,
+        match_repeater=match_repeater,
         oauth_client=FakeOAuthClient(),
     )
-    return AppEnv(app, socketio, app.test_client(), clock, timer, database, bot_scheduler)
+    return AppEnv(app, socketio, app.test_client(), clock, timer, database, bot_scheduler, match_repeater)
 
 
 def create_guest(env: AppEnv, nickname: str) -> tuple[str, str]:

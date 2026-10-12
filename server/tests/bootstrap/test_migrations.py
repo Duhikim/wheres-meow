@@ -13,7 +13,7 @@ class TestMigrations:
 
             tables = set(inspect(database.engine).get_table_names())
 
-            assert {"players", "game_records", "bot_records", "alembic_version"} <= tables
+            assert {"players", "game_records", "bot_records", "ratings", "rating_changes", "alembic_version"} <= tables
 
         def test_성공_마이그레이션_결과가_ORM_모델과_일치한다(self):
             database = migrated_database()

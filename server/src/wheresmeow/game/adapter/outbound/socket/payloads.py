@@ -12,6 +12,7 @@ from wheresmeow.game.domain.game import (
     GameEvent,
     GameStatus,
     OpenedCell,
+    RatingChange,
     TurnTimedOut,
 )
 
@@ -44,14 +45,25 @@ def snapshot_payload(game: Game, my_seat: int) -> dict[str, Any]:
     payload["timeouts"] = [seat.consecutive_timeouts for seat in game.seats]
     if game.status is GameStatus.FINISHED:
         assert game.end_reason is not None
-        payload["result"] = {"reason": game.end_reason.value, "winner": game.winner}
+        payload["result"] = {
+            "reason": game.end_reason.value,
+            "winner": game.winner,
+            "ratingChanges": rating_changes_payload(game.rating_changes),
+        }
         payload["cats"] = [[x, y] for x, y in sorted(game.board.cats)]
     else:
         payload["result"] = None
     return payload
 
 
-def event_payload(game_id: str, event: GameEvent) -> tuple[str, dict[str, Any]]:
+def rating_changes_payload(changes: tuple[RatingChange, RatingChange] | None) -> list[dict[str, int]] | None:
+    if changes is None:
+        return None
+    return [{"before": c.before, "after": c.after} for c in changes]
+
+
+def event_payload(game: Game, event: GameEvent) -> tuple[str, dict[str, Any]]:
+    game_id = game.id
     match event:
         case CellsRevealed():
             return "game:revealed", {
@@ -79,6 +91,7 @@ def event_payload(game_id: str, event: GameEvent) -> tuple[str, dict[str, Any]]:
                 "winner": event.winner,
                 "scores": list(event.scores),
                 "cats": [[x, y] for x, y in event.cats],
+                "ratingChanges": rating_changes_payload(game.rating_changes),
                 "version": event.version,
             }
     raise TypeError(f"알 수 없는 이벤트입니다: {event!r}")

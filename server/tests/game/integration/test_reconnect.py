@@ -64,7 +64,11 @@ class TestGameSync:
 
             [state] = received(g["a"], "game:state")
             assert state["status"] == "FINISHED"
-            assert state["result"] == {"reason": "FORFEIT", "winner": 0}
+            assert state["result"] == {
+                "reason": "FORFEIT",
+                "winner": 0,
+                "ratingChanges": [{"before": 1000, "after": 1016}, {"before": 1000, "after": 984}],
+            }
             assert len(state["cats"]) == 25
 
         def test_실패_참가자가_아니면_거부한다(self, app_env):

@@ -7,6 +7,7 @@ import { errorMessage } from "../errorMessages";
 import { computeCellSize } from "../game/cellSize";
 import { useGameStore } from "../game/gameStore";
 import { useSecondsLeft, useViewportWidth } from "../game/hooks";
+import { formatDelta, myRatingChange } from "../game/rating";
 import { cellKey, type GameState, type SeatIndex } from "../game/types";
 import { useSession } from "../session/sessionStore";
 import { getSocket } from "../socket/socket";
@@ -86,6 +87,7 @@ export function PlayPage() {
   const turnAccent = accentOf(game.seats[game.currentSeat].skin);
   const found = Object.values(game.cells).filter((c) => c.kind === "cat" && c.seat !== null).length;
   const skins: [number, number] = [game.seats[0].skin, game.seats[1].skin];
+  const ratingChange = myRatingChange(game);
 
   function reveal(x: number, y: number) {
     useGameStore.getState().setError(null);
@@ -142,6 +144,12 @@ export function PlayPage() {
             <CatArt skin={game.seats[opponent].skin} pose="face" size={44} />
           </div>
           <p className="muted">{REASON_TEXT[game.result.reason]}</p>
+          {ratingChange && (
+            <p className="rating-change">
+              레이팅 {ratingChange.before} → <b>{ratingChange.after}</b>{" "}
+              <span className={ratingChange.delta >= 0 ? "up" : "down"}>({formatDelta(ratingChange.delta)})</span>
+            </p>
+          )}
           <p className="muted small">흐린 회색 고양이는 아무도 찾지 못한 고양이입니다.</p>
           <Link className="btn primary" to="/">
             로비로

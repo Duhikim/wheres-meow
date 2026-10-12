@@ -31,6 +31,23 @@ from wheresmeow.game.adapter.outbound.timer.background_turn_timer import Backgro
 from wheresmeow.game.application.port.outbound import TurnTimer
 from wheresmeow.game.application.service.game_service import GameService
 from wheresmeow.game.domain.board import MineLayoutGenerator, RandomMineLayoutGenerator, SeededMineLayoutGenerator
+from wheresmeow.matchmaking.adapter.inbound.match_ticker import Repeater, socketio_repeater
+from wheresmeow.matchmaking.adapter.outbound.adapters import (
+    AccountPlayerDirectory as MatchPlayerDirectory,
+)
+from wheresmeow.matchmaking.adapter.outbound.adapters import (
+    MatchGameStarterAdapter,
+    RatingLookupAdapter,
+    SocketIOMatchNotifier,
+)
+from wheresmeow.matchmaking.application.service.matchmaking_service import MatchmakingService
+from wheresmeow.rating.adapter.outbound.account.account_player_directory import (
+    AccountPlayerDirectory as RatingPlayerDirectory,
+)
+from wheresmeow.rating.adapter.outbound.bot.bot_record_source_adapter import BotRecordSourceAdapter
+from wheresmeow.rating.adapter.outbound.persistence.rating_contributor import RatingContributor
+from wheresmeow.rating.adapter.outbound.persistence.sql_rating_reader import SqlRatingReader
+from wheresmeow.rating.application.service.rating_query_service import RatingQueryService
 from wheresmeow.room.adapter.outbound.account.account_player_directory import AccountPlayerDirectory
 from wheresmeow.room.adapter.outbound.game.game_starter_adapter import GameStarterAdapter
 from wheresmeow.room.adapter.outbound.memory.in_memory_room_store import InMemoryRoomStore
@@ -49,6 +66,8 @@ class Container:
     game_service: GameService
     room_service: RoomService
     bot_service: BotService
+    rating_query_service: RatingQueryService
+    matchmaking_service: MatchmakingService
     http_identity: HttpIdentity
     socket_sessions: SocketSessions
 
@@ -63,6 +82,7 @@ def build_container(
     layout_generator: MineLayoutGenerator | None = None,
     first_seat_chooser: Callable[[], int] | None = None,
     bot_scheduler: Scheduler | None = None,
+    match_repeater: Repeater | None = None,
 ) -> Container:
     clock = clock or SystemClock()
     if database is None:
@@ -98,7 +118,7 @@ def build_container(
         turn_timer or BackgroundTurnTimer(socketio, clock),
         layout_generator,
         clock,
-        recorder=SqlGameResultRecorder(database, clock, contributors=[BotRecordContributor()]),
+        recorder=SqlGameResultRecorder(database, clock, contributors=[BotRecordContributor(), RatingContributor(clock)]),
         **game_options,
     )
 
@@ -106,6 +126,19 @@ def build_container(
     bot_service = BotService(
         AccountHumanDirectory(guest_service), BotGameStarterAdapter(game_service), SqlBotRecordReader(database)
     )
+
+    rating_query_service = RatingQueryService(
+        SqlRatingReader(database), RatingPlayerDirectory(guest_service), BotRecordSourceAdapter(bot_service.bot_records)
+    )
+
+    matchmaking_service = MatchmakingService(
+        MatchPlayerDirectory(guest_service),
+        RatingLookupAdapter(rating_query_service.current_rating),
+        MatchGameStarterAdapter(game_service, game_service),
+        SocketIOMatchNotifier(socketio),
+        clock,
+    )
+    (match_repeater or socketio_repeater(socketio))(matchmaking_service.tick)  # 1초마다 짝짓기(스펙 4.3)
 
     room_service = RoomService(
         InMemoryRoomStore(),
@@ -123,6 +156,8 @@ def build_container(
         game_service=game_service,
         room_service=room_service,
         bot_service=bot_service,
+        rating_query_service=rating_query_service,
+        matchmaking_service=matchmaking_service,
         http_identity=HttpIdentity(authenticator),
         socket_sessions=SocketSessions(),
     )

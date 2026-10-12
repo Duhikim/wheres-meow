@@ -100,7 +100,7 @@ export function gameReducer(state: GameState | null, action: GameAction): GameSt
         turnDeadline: null,
         version: p.version,
         status: "FINISHED",
-        result: { reason: p.reason, winner: p.winner },
+        result: { reason: p.reason, winner: p.winner, ratingChanges: p.ratingChanges },
       };
     }
   }

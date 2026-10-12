@@ -1,6 +1,6 @@
 from wheresmeow.game.adapter.outbound.socket.payloads import cell_payload, event_payload, started_payload
 from wheresmeow.game.domain.board import Board
-from wheresmeow.game.domain.game import Game, GameMode, OpenedCell, Seat
+from wheresmeow.game.domain.game import Game, GameMode, OpenedCell, RatingChange, Seat
 
 
 def make_game() -> Game:
@@ -30,17 +30,27 @@ class TestPayloads:
             game = make_game()
             [ended] = game.forfeit("a", now_ms=0)
 
-            name, payload = event_payload(game.id, ended)
+            name, payload = event_payload(game, ended)
 
             assert name == "game:ended"
             assert payload["cats"] == [[0, 0], [3, 3]]
             assert (payload["reason"], payload["winner"]) == ("FORFEIT", 1)
+            assert payload["ratingChanges"] is None  # 기록 전이거나 저장에 실패했거나 봇 대국
+
+        def test_성공_종료_이벤트에_좌석별_레이팅_변화를_담는다(self):
+            game = make_game()
+            [ended] = game.forfeit("a", now_ms=0)
+            game.rating_changes = (RatingChange(1000, 984), RatingChange(1000, 1016))
+
+            _, payload = event_payload(game, ended)
+
+            assert payload["ratingChanges"] == [{"before": 1000, "after": 984}, {"before": 1000, "after": 1016}]
 
         def test_성공_공개_이벤트의_이름과_필드(self):
             game = make_game()
             [revealed] = game.reveal("a", 1, 0, now_ms=0)
 
-            name, payload = event_payload(game.id, revealed)
+            name, payload = event_payload(game, revealed)
 
             assert name == "game:revealed"
             assert payload["cells"] == [{"x": 1, "y": 0, "kind": "number", "n": 1}]
