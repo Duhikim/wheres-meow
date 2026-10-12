@@ -1,0 +1,40 @@
+import { useState, type FormEvent } from "react";
+import { ApiError } from "../api/http";
+import { errorMessage } from "../errorMessages";
+import { createGuest } from "../session/sessionStore";
+
+export function NicknameForm() {
+  const [nickname, setNickname] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      await createGuest(nickname);
+    } catch (e) {
+      setError(e instanceof ApiError ? errorMessage(e.code) : errorMessage("INTERNAL"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="stack" onSubmit={submit}>
+      <label htmlFor="nickname">닉네임 (2~12자)</label>
+      <input
+        id="nickname"
+        value={nickname}
+        maxLength={12}
+        autoComplete="off"
+        onChange={(e) => setNickname(e.target.value)}
+      />
+      <button className="primary" type="submit" disabled={submitting}>
+        게스트로 시작
+      </button>
+      {error && <p className="error">{error}</p>}
+    </form>
+  );
+}
